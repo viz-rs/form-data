@@ -6,13 +6,20 @@ use anyhow::{anyhow, Result};
 use bytes::BytesMut;
 use http::HeaderMap;
 
-use futures_util::{stream::TryStreamExt};
+use futures_util::stream::TryStreamExt;
 
 use form_data::*;
 
 mod limited;
 
 use limited::Limited;
+
+#[test]
+fn main() -> Result<()> {
+    assert!(pretty_env_logger::try_init().is_ok());
+
+    Ok(())
+}
 
 #[test]
 fn empty() -> Result<()> {
