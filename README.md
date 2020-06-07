@@ -1,7 +1,7 @@
 <h1 align="center">form-data</h1>
 
 <div align="center">
-  <p><strong>AsyncRead/AsyncWrite/Stream for `multipart/form-data` <sup>rfc7578</sup>.</strong></p>
+  <p><strong>AsyncRead/AsyncWrite/Stream for `multipart/form-data` <sup>rfc7578</sup></strong></p>
 </div>
 
 <div align="center">

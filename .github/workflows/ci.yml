@@ -26,4 +26,4 @@ jobs:
         env: RUST_LOG=debug
         with:
           command: test
-          args: --verbose
+          args:
