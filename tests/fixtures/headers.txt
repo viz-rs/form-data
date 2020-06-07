@@ -1,0 +1,9 @@
+  
+
+--boundary
+Content-Disposition: form-data; name="operations"; filename="graphql.json"
+Content-Type: application/json
+Content-Length: 13
+
+{"query": ""}
+--boundary--

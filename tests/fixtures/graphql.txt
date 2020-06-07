@@ -1,0 +1,28 @@
+--------------------------627436eaefdbc285
+Content-Disposition: form-data; name="operations"
+
+[{ "query": "mutation ($file: Upload!) { singleUpload(file: $file) { id } }", "variables": { "file": null } }, { "query": "mutation($files: [Upload!]!) { multipleUpload(files: $files) { id } }", "variables": { "files": [null, null] } }]
+--------------------------627436eaefdbc285
+Content-Disposition: form-data; name="map"
+
+{ "0": ["0.variables.file"], "1": ["1.variables.files.0"], "2": ["1.variables.files.1"] }
+--------------------------627436eaefdbc285
+Content-Disposition: form-data; name="0"; filename="a.txt"
+Content-Type: text/plain
+
+Alpha file content.
+
+--------------------------627436eaefdbc285
+Content-Disposition: form-data; name="1"; filename="b.txt"
+Content-Type: text/plain
+
+Bravo file content.
+
+--------------------------627436eaefdbc285
+Content-Disposition: form-data; name="2"; filename="c.txt"
+Content-Type: text/plain
+
+Charlie file content.
+
+--------------------------627436eaefdbc285--
+
