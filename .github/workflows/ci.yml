@@ -10,15 +10,13 @@ env:
 jobs:
   test:
     name: Test ${{ matrix.rust }}
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         rust:
           - stable
           - beta
           - nightly
-
-    runs-on: ubuntu-latest
-
     steps:
       - name: Install Rust (${{ matrix.rust }})
         uses: actions-rs/toolchain@v1

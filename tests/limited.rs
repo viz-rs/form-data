@@ -18,6 +18,7 @@ pub struct Limited<T> {
 }
 
 impl<T> Limited<T> {
+    #[allow(dead_code)]
     pub fn random(io: T) -> Self {
         let mut rng = rand::thread_rng();
         let limit = rng.gen_range(1, 8 * 1024);
@@ -32,6 +33,7 @@ impl<T> Limited<T> {
         }
     }
 
+    #[allow(dead_code)]
     pub fn random_with(io: T, max: usize) -> Self {
         let mut rng = rand::thread_rng();
         let limit = rng.gen_range(1, max);
