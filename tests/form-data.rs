@@ -15,15 +15,6 @@ mod limited;
 use limited::Limited;
 
 #[test]
-fn main() -> Result<()> {
-    pretty_env_logger::try_init()?;
-
-    assert!(true);
-
-    Ok(())
-}
-
-#[test]
 fn empty() -> Result<()> {
     thread::spawn(|| smol::run(future::pending::<()>()));
 

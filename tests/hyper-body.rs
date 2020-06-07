@@ -18,7 +18,7 @@ use limited::Limited;
 
 #[test]
 fn hyper_body() -> Result<()> {
-    pretty_env_logger::try_init()?;
+    // pretty_env_logger::try_init()?;
 
     thread::spawn(|| smol::run(future::pending::<()>()));
 
