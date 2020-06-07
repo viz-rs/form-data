@@ -1,8 +1,7 @@
 <h1 align="center">form-data</h1>
 
 <div align="center">
-  <p><strong>AsyncRead/AsyncWrite/Stream for `multipart/form-data`.</strong></p>
-  <p>Implemented rfc7578</p>
+  <p><strong>AsyncRead/AsyncWrite/Stream for `multipart/form-data` <sup>rfc7578</sup>.</strong></p>
 </div>
 
 <div align="center">
@@ -40,38 +39,31 @@ while let Some(mut field) = form.try_next().await? {
     assert!(!field.consumed());
     assert_eq!(field.length, 0);
 
-    let buffer = field.bytes().await?;
-
     match field.index {
         Some(0) => {
             assert_eq!(field.name, "_method");
             assert_eq!(field.filename, None);
             assert_eq!(field.content_type, None);
-            assert_eq!(buffer, "put\r\n");
         }
         Some(1) => {
             assert_eq!(field.name, "profile[blog]");
             assert_eq!(field.filename, None);
             assert_eq!(field.content_type, None);
-            assert_eq!(buffer, "\r\n");
         }
         Some(2) => {
             assert_eq!(field.name, "profile[public_email]");
             assert_eq!(field.filename, None);
             assert_eq!(field.content_type, None);
-            assert_eq!(buffer, "\r\n");
         }
         Some(3) => {
             assert_eq!(field.name, "profile[interests]");
             assert_eq!(field.filename, None);
             assert_eq!(field.content_type, None);
-            assert_eq!(buffer, "\r\n");
         }
         Some(4) => {
             assert_eq!(field.name, "profile[bio]");
             assert_eq!(field.filename, None);
             assert_eq!(field.content_type, None);
-            assert_eq!(buffer, "hello\r\n\r\n\"quote\"\r\n");
         }
         Some(5) => {
             assert_eq!(field.name, "media");
@@ -82,6 +74,32 @@ while let Some(mut field) = form.try_next().await? {
             assert_eq!(field.name, "commit");
             assert_eq!(field.filename, None);
             assert_eq!(field.content_type, None);
+        }
+        _ => {}
+    }
+
+    let buffer = field.bytes().await?;
+
+    match field.index {
+        Some(0) => {
+            assert_eq!(buffer, "put\r\n");
+        }
+        Some(1) => {
+            assert_eq!(buffer, "\r\n");
+        }
+        Some(2) => {
+            assert_eq!(buffer, "\r\n");
+        }
+        Some(3) => {
+            assert_eq!(buffer, "\r\n");
+        }
+        Some(4) => {
+            assert_eq!(buffer, "hello\r\n\r\n\"quote\"\r\n");
+        }
+        Some(5) => {
+            assert_eq!(buffer, "");
+        }
+        Some(6) => {
             assert_eq!(buffer, "Save\r\n");
         }
         _ => {}
