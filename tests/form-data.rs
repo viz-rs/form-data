@@ -264,10 +264,10 @@ fn headers() -> Result<()> {
 }
 
 #[test]
-fn sample_crlf() -> Result<()> {
+fn sample() -> Result<()> {
     // dont use `smol::run`, we need Multi-threaded
     smol::block_on(async {
-        let body = Limited::random(smol::reader(File::open("tests/fixtures/sample_crlf.txt")?));
+        let body = Limited::random(smol::reader(File::open("tests/fixtures/sample.txt")?));
 
         let mut form = FormData::new("--------------------------434049563556637648550474", body);
 
@@ -355,7 +355,7 @@ fn sample_crlf() -> Result<()> {
 fn sample_lf() -> Result<()> {
     // dont use `smol::run`, we need Multi-threaded
     smol::block_on(async {
-        let body = Limited::random(smol::reader(File::open("tests/fixtures/sample_lf.txt")?));
+        let body = Limited::random(smol::reader(File::open("tests/fixtures/sample.lf.txt")?));
 
         let mut form = FormData::new("--------------------------434049563556637648550474", body);
 
