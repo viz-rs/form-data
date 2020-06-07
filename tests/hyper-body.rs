@@ -1,11 +1,9 @@
 use std::fs::File;
-use std::thread;
 
 use anyhow::{anyhow, Result};
 use hyper::Body;
 
 use futures_util::{
-    future,
     // io::{copy, Cursor},
     stream::TryStreamExt,
 };
@@ -19,8 +17,6 @@ use limited::Limited;
 #[test]
 fn hyper_body() -> Result<()> {
     // pretty_env_logger::try_init()?;
-
-    thread::spawn(|| smol::run(future::pending::<()>()));
 
     // dont use `smol::run`, we need Multi-threaded
     smol::block_on(async {

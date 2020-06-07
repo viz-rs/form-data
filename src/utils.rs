@@ -3,10 +3,10 @@ use anyhow::{anyhow, Result};
 use http::header::{HeaderMap, HeaderName, HeaderValue};
 use httparse::{parse_headers, Status, EMPTY_HEADER};
 
-pub(crate) const CRLF: &[u8; 2] = &[CR, LF]; // `\r\n`
 pub(crate) const CR: u8 = b'\r';
 pub(crate) const LF: u8 = b'\n';
 pub(crate) const DASH: u8 = b'-';
+pub(crate) const CRLF: &[u8; 2] = &[CR, LF]; // `\r\n`
 
 pub(crate) fn read_until_ctlf(bytes: &[u8]) -> Option<usize> {
     twoway::find_bytes(bytes, CRLF)
@@ -116,10 +116,10 @@ pub(crate) fn parse_content_disposition(hv: &[u8]) -> Result<(String, Option<Str
         }
     }
 
-    let name = v[1];
-    if name.0 == b"name" && name.1.len() > 0 {
+    // name
+    if v[1].0 == b"name" && v[1].1.len() > 0 {
         return Ok((
-            String::from_utf8_lossy(name.1).to_string(),
+            String::from_utf8_lossy(v[1].1).to_string(),
             if v.len() > 2 && v[2].0 == b"filename" {
                 Some(String::from_utf8_lossy(v[2].1).to_string())
             } else {

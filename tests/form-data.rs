@@ -1,12 +1,12 @@
 use std::fs::File;
-use std::thread;
+// use std::thread;
 
 use anyhow::{anyhow, Result};
 
 use bytes::BytesMut;
 use http::HeaderMap;
 
-use futures_util::{future, stream::TryStreamExt};
+use futures_util::{stream::TryStreamExt};
 
 use form_data::*;
 
@@ -16,8 +16,6 @@ use limited::Limited;
 
 #[test]
 fn empty() -> Result<()> {
-    thread::spawn(|| smol::run(future::pending::<()>()));
-
     // dont use `smol::run`, we need Multi-threaded
     smol::block_on(async {
         let body = Limited::random(smol::reader(File::open("tests/fixtures/empty.txt")?));
@@ -45,8 +43,6 @@ fn empty() -> Result<()> {
 
 #[test]
 fn many() -> Result<()> {
-    thread::spawn(|| smol::run(future::pending::<()>()));
-
     // dont use `smol::run`, we need Multi-threaded
     smol::block_on(async {
         let body = Limited::random(smol::reader(File::open("tests/fixtures/many.txt")?));
@@ -134,8 +130,6 @@ fn many() -> Result<()> {
 
 #[test]
 fn many_noend() -> Result<()> {
-    thread::spawn(|| smol::run(future::pending::<()>()));
-
     // dont use `smol::run`, we need Multi-threaded
     smol::block_on(async {
         let body = Limited::random(smol::reader(File::open("tests/fixtures/many-noend.txt")?));
@@ -223,8 +217,6 @@ fn many_noend() -> Result<()> {
 
 #[test]
 fn headers() -> Result<()> {
-    thread::spawn(|| smol::run(future::pending::<()>()));
-
     // dont use `smol::run`, we need Multi-threaded
     smol::block_on(async {
         let body = Limited::random(smol::reader(File::open("tests/fixtures/headers.txt")?));
@@ -273,8 +265,6 @@ fn headers() -> Result<()> {
 
 #[test]
 fn sample_crlf() -> Result<()> {
-    thread::spawn(|| smol::run(future::pending::<()>()));
-
     // dont use `smol::run`, we need Multi-threaded
     smol::block_on(async {
         let body = Limited::random(smol::reader(File::open("tests/fixtures/sample_crlf.txt")?));
@@ -363,8 +353,6 @@ fn sample_crlf() -> Result<()> {
 
 #[test]
 fn sample_lf() -> Result<()> {
-    thread::spawn(|| smol::run(future::pending::<()>()));
-
     // dont use `smol::run`, we need Multi-threaded
     smol::block_on(async {
         let body = Limited::random(smol::reader(File::open("tests/fixtures/sample_lf.txt")?));
@@ -399,8 +387,6 @@ fn sample_lf() -> Result<()> {
 
 #[test]
 fn graphql() -> Result<()> {
-    thread::spawn(|| smol::run(future::pending::<()>()));
-
     // dont use `smol::run`, we need Multi-threaded
     smol::block_on(async {
         let body = Limited::random(smol::reader(File::open("tests/fixtures/graphql.txt")?));
