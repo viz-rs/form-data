@@ -264,7 +264,7 @@ fn headers() -> Result<()> {
 
         assert_eq!(state.eof(), true);
         assert_eq!(state.total(), 1);
-        assert_eq!(state.len(), 176);
+        assert_eq!(state.len(), 177);
 
         Ok(())
     })

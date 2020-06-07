@@ -24,5 +24,6 @@ jobs:
 
       - uses: actions-rs/cargo@v1
         with:
+          env: RUST_LOG=debug
           command: test
           args: --verbose

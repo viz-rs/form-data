@@ -244,6 +244,9 @@ where
                             return Poll::Ready(Some(Ok(idx)));
                         }
                         self.buffer_mut().advance(idx);
+                        if self.buffer().len() > 0 {
+                            continue;
+                        }
                     }
                 }
             }
