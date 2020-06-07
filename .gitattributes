@@ -1,0 +1,2 @@
+tests/fixtures/*.txt text eol=crlf
+tests/fixtures/*.lf.txt text eol=lf
