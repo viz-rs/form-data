@@ -14,10 +14,10 @@ mod limited;
 
 use limited::Limited;
 
+// just use for init logger
 #[test]
-fn main() -> Result<()> {
+fn a_pretty_env_logger() -> Result<()> {
     assert!(pretty_env_logger::try_init().is_ok());
-
     Ok(())
 }
 
@@ -70,50 +70,50 @@ fn many() -> Result<()> {
                     assert_eq!(field.name, "_method");
                     assert_eq!(field.filename, None);
                     assert_eq!(field.content_type, None);
-                    assert_eq!(field.length, 5);
-                    assert_eq!(buffer, "put\r\n");
+                    assert_eq!(field.length, 3);
+                    assert_eq!(buffer, "put");
                 }
                 Some(1) => {
                     assert_eq!(field.name, "profile[blog]");
                     assert_eq!(field.filename, None);
                     assert_eq!(field.content_type, None);
-                    assert_eq!(field.length, 2);
-                    assert_eq!(buffer, "\r\n");
+                    assert_eq!(field.length, 0);
+                    assert_eq!(buffer, "");
                 }
                 Some(2) => {
                     assert_eq!(field.name, "profile[public_email]");
                     assert_eq!(field.filename, None);
                     assert_eq!(field.content_type, None);
-                    assert_eq!(field.length, 2);
-                    assert_eq!(buffer, "\r\n");
+                    assert_eq!(field.length, 0);
+                    assert_eq!(buffer, "");
                 }
                 Some(3) => {
                     assert_eq!(field.name, "profile[interests]");
                     assert_eq!(field.filename, None);
                     assert_eq!(field.content_type, None);
-                    assert_eq!(field.length, 2);
-                    assert_eq!(buffer, "\r\n");
+                    assert_eq!(field.length, 0);
+                    assert_eq!(buffer, "");
                 }
                 Some(4) => {
                     assert_eq!(field.name, "profile[bio]");
                     assert_eq!(field.filename, None);
                     assert_eq!(field.content_type, None);
-                    assert_eq!(field.length, 18);
-                    assert_eq!(buffer, "hello\r\n\r\n\"quote\"\r\n");
+                    assert_eq!(field.length, 16);
+                    assert_eq!(buffer, "hello\r\n\r\n\"quote\"");
                 }
                 Some(5) => {
                     assert_eq!(field.name, "media");
                     assert_eq!(field.filename, Some(String::new()));
                     assert_eq!(field.content_type, Some(mime::APPLICATION_OCTET_STREAM));
-                    assert_eq!(field.length, 2);
-                    assert_eq!(buffer, "\r\n");
+                    assert_eq!(field.length, 0);
+                    assert_eq!(buffer, "");
                 }
                 Some(6) => {
                     assert_eq!(field.name, "commit");
                     assert_eq!(field.filename, None);
                     assert_eq!(field.content_type, None);
-                    assert_eq!(field.length, 6);
-                    assert_eq!(buffer, "Save\r\n");
+                    assert_eq!(field.length, 4);
+                    assert_eq!(buffer, "Save");
                 }
                 _ => {}
             }
@@ -157,50 +157,50 @@ fn many_noend() -> Result<()> {
                     assert_eq!(field.name, "_method");
                     assert_eq!(field.filename, None);
                     assert_eq!(field.content_type, None);
-                    assert_eq!(field.length, 5);
-                    assert_eq!(buffer, "put\r\n");
+                    assert_eq!(field.length, 3);
+                    assert_eq!(buffer, "put");
                 }
                 Some(1) => {
                     assert_eq!(field.name, "profile[blog]");
                     assert_eq!(field.filename, None);
                     assert_eq!(field.content_type, None);
-                    assert_eq!(field.length, 2);
-                    assert_eq!(buffer, "\r\n");
+                    assert_eq!(field.length, 0);
+                    assert_eq!(buffer, "");
                 }
                 Some(2) => {
                     assert_eq!(field.name, "profile[public_email]");
                     assert_eq!(field.filename, None);
                     assert_eq!(field.content_type, None);
-                    assert_eq!(field.length, 2);
-                    assert_eq!(buffer, "\r\n");
+                    assert_eq!(field.length, 0);
+                    assert_eq!(buffer, "");
                 }
                 Some(3) => {
                     assert_eq!(field.name, "profile[interests]");
                     assert_eq!(field.filename, None);
                     assert_eq!(field.content_type, None);
-                    assert_eq!(field.length, 2);
-                    assert_eq!(buffer, "\r\n");
+                    assert_eq!(field.length, 0);
+                    assert_eq!(buffer, "");
                 }
                 Some(4) => {
                     assert_eq!(field.name, "profile[bio]");
                     assert_eq!(field.filename, None);
                     assert_eq!(field.content_type, None);
-                    assert_eq!(field.length, 18);
-                    assert_eq!(buffer, "hello\r\n\r\n\"quote\"\r\n");
+                    assert_eq!(field.length, 16);
+                    assert_eq!(buffer, "hello\r\n\r\n\"quote\"");
                 }
                 Some(5) => {
                     assert_eq!(field.name, "commit");
                     assert_eq!(field.filename, None);
                     assert_eq!(field.content_type, None);
-                    assert_eq!(field.length, 6);
-                    assert_eq!(buffer, "Save\r\n");
+                    assert_eq!(field.length, 4);
+                    assert_eq!(buffer, "Save");
                 }
                 Some(6) => {
                     assert_eq!(field.name, "media");
                     assert_eq!(field.filename, Some(String::new()));
                     assert_eq!(field.content_type, Some(mime::APPLICATION_OCTET_STREAM));
-                    assert_eq!(field.length, 2);
-                    assert_eq!(buffer, "\r\n");
+                    assert_eq!(field.length, 0);
+                    assert_eq!(buffer, "");
                 }
                 _ => {}
             }
@@ -244,11 +244,11 @@ fn headers() -> Result<()> {
                     assert_eq!(field.name, "operations");
                     assert_eq!(field.filename, Some("graphql.json".into()));
                     assert_eq!(field.content_type, Some(mime::APPLICATION_JSON));
-                    assert_eq!(field.length, 15);
+                    assert_eq!(field.length, 13);
                     let mut headers = HeaderMap::new();
                     headers.append(http::header::CONTENT_LENGTH, 13.into());
                     assert_eq!(field.headers, Some(headers));
-                    assert_eq!(buffer, "{\"query\": \"\"}\r\n");
+                    assert_eq!(buffer, "{\"query\": \"\"}");
                 }
                 _ => {}
             }
@@ -292,21 +292,21 @@ fn sample() -> Result<()> {
                     assert_eq!(field.name, "foo");
                     assert_eq!(field.filename, None);
                     assert_eq!(field.content_type, Some(mime::APPLICATION_OCTET_STREAM));
-                    assert_eq!(field.length, 5);
-                    assert_eq!(buffer, "foo\r\n");
+                    assert_eq!(field.length, 3);
+                    assert_eq!(buffer, "foo");
                 }
                 Some(1) => {
                     assert_eq!(field.name, "bar");
                     assert_eq!(field.filename, None);
                     assert_eq!(field.content_type, Some(mime::APPLICATION_OCTET_STREAM));
-                    assert_eq!(field.length, 5);
-                    assert_eq!(buffer, "bar\r\n");
+                    assert_eq!(field.length, 3);
+                    assert_eq!(buffer, "bar");
                 }
                 Some(2) => {
                     assert_eq!(field.name, "file");
                     assert_eq!(field.filename, Some("tsconfig.json".into()));
                     assert_eq!(field.content_type, Some(mime::APPLICATION_OCTET_STREAM));
-                    assert_eq!(field.length, 235);
+                    assert_eq!(field.length, 233);
                     assert_eq!(
                         String::from_utf8_lossy(&buffer).replacen("\r\n", "\n", 12),
                         r#"{
@@ -320,7 +320,6 @@ fn sample() -> Result<()> {
     }
   }
 }
-
 "#
                     );
                 }
@@ -328,8 +327,8 @@ fn sample() -> Result<()> {
                     assert_eq!(field.name, "file2");
                     assert_eq!(field.filename, Some("中文.json".into()));
                     assert_eq!(field.content_type, Some(mime::APPLICATION_OCTET_STREAM));
-                    assert_eq!(field.length, 30);
-                    assert_eq!(buffer, "{\r\n  \"test\": \"filename\"\r\n}\r\n\r\n");
+                    assert_eq!(field.length, 28);
+                    assert_eq!(buffer, "{\r\n  \"test\": \"filename\"\r\n}\r\n");
                 }
                 Some(4) => {
                     assert_eq!(field.name, "crab");
@@ -397,6 +396,8 @@ fn graphql() -> Result<()> {
     // dont use `smol::run`, we need Multi-threaded
     smol::block_on(async {
         let body = Limited::random(smol::reader(File::open("tests/fixtures/graphql.txt")?));
+        // let body = Limited::random_with(smol::reader(File::open("tests/fixtures/graphql.txt")?), 1024);
+        // let body = Limited::new(smol::reader(File::open("tests/fixtures/graphql.txt")?), 1033);
 
         let mut form = FormData::new("------------------------627436eaefdbc285", body);
 
@@ -414,36 +415,36 @@ fn graphql() -> Result<()> {
                     assert_eq!(field.name, "operations");
                     assert_eq!(field.filename, None);
                     assert_eq!(field.content_type, None);
-                    assert_eq!(field.length, 238);
-                    assert_eq!(buffer, "[{ \"query\": \"mutation ($file: Upload!) { singleUpload(file: $file) { id } }\", \"variables\": { \"file\": null } }, { \"query\": \"mutation($files: [Upload!]!) { multipleUpload(files: $files) { id } }\", \"variables\": { \"files\": [null, null] } }]\r\n");
+                    assert_eq!(field.length, 236);
+                    assert_eq!(buffer, "[{ \"query\": \"mutation ($file: Upload!) { singleUpload(file: $file) { id } }\", \"variables\": { \"file\": null } }, { \"query\": \"mutation($files: [Upload!]!) { multipleUpload(files: $files) { id } }\", \"variables\": { \"files\": [null, null] } }]");
                 }
                 Some(1) => {
                     assert_eq!(field.name, "map");
                     assert_eq!(field.filename, None);
                     assert_eq!(field.content_type, None);
-                    assert_eq!(field.length, 91);
-                    assert_eq!(buffer, "{ \"0\": [\"0.variables.file\"], \"1\": [\"1.variables.files.0\"], \"2\": [\"1.variables.files.1\"] }\r\n");
+                    assert_eq!(field.length, 89);
+                    assert_eq!(buffer, "{ \"0\": [\"0.variables.file\"], \"1\": [\"1.variables.files.0\"], \"2\": [\"1.variables.files.1\"] }");
                 }
                 Some(2) => {
                     assert_eq!(field.name, "0");
                     assert_eq!(field.filename, Some("a.txt".into()));
                     assert_eq!(field.content_type, Some(mime::TEXT_PLAIN));
-                    assert_eq!(field.length, 23);
-                    assert_eq!(buffer, "Alpha file content.\r\n\r\n");
+                    assert_eq!(field.length, 21);
+                    assert_eq!(buffer, "Alpha file content.\r\n");
                 }
                 Some(3) => {
                     assert_eq!(field.name, "1");
                     assert_eq!(field.filename, Some("b.txt".into()));
                     assert_eq!(field.content_type, Some(mime::TEXT_PLAIN));
-                    assert_eq!(field.length, 23);
-                    assert_eq!(buffer, "Bravo file content.\r\n\r\n");
+                    assert_eq!(field.length, 21);
+                    assert_eq!(buffer, "Bravo file content.\r\n");
                 }
                 Some(4) => {
                     assert_eq!(field.name, "2");
                     assert_eq!(field.filename, Some("c.txt".into()));
                     assert_eq!(field.content_type, Some(mime::TEXT_PLAIN));
-                    assert_eq!(field.length, 25);
-                    assert_eq!(buffer, "Charlie file content.\r\n\r\n");
+                    assert_eq!(field.length, 23);
+                    assert_eq!(buffer, "Charlie file content.\r\n");
                 }
                 _ => {}
             }
@@ -459,7 +460,7 @@ fn graphql() -> Result<()> {
 
         assert_eq!(state.eof(), true);
         assert_eq!(state.total(), 5);
-        assert_eq!(state.len(), 1031);
+        assert_eq!(state.len(), 1029);
 
         Ok(())
     })

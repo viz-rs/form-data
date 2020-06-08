@@ -3,10 +3,7 @@ use std::fs::File;
 use anyhow::{anyhow, Result};
 use hyper::Body;
 
-use futures_util::{
-    // io::{copy, Cursor},
-    stream::TryStreamExt,
-};
+use futures_util::stream::TryStreamExt;
 
 use form_data::*;
 
@@ -47,38 +44,31 @@ fn hyper_body() -> Result<()> {
             assert!(!field.consumed());
             assert_eq!(field.length, 0);
 
-            let buffer = field.bytes().await?;
-
             match field.index {
                 Some(0) => {
                     assert_eq!(field.name, "_method");
                     assert_eq!(field.filename, None);
                     assert_eq!(field.content_type, None);
-                    assert_eq!(buffer, "put\r\n");
                 }
                 Some(1) => {
                     assert_eq!(field.name, "profile[blog]");
                     assert_eq!(field.filename, None);
                     assert_eq!(field.content_type, None);
-                    assert_eq!(buffer, "\r\n");
                 }
                 Some(2) => {
                     assert_eq!(field.name, "profile[public_email]");
                     assert_eq!(field.filename, None);
                     assert_eq!(field.content_type, None);
-                    assert_eq!(buffer, "\r\n");
                 }
                 Some(3) => {
                     assert_eq!(field.name, "profile[interests]");
                     assert_eq!(field.filename, None);
                     assert_eq!(field.content_type, None);
-                    assert_eq!(buffer, "\r\n");
                 }
                 Some(4) => {
                     assert_eq!(field.name, "profile[bio]");
                     assert_eq!(field.filename, None);
                     assert_eq!(field.content_type, None);
-                    assert_eq!(buffer, "hello\r\n\r\n\"quote\"\r\n");
                 }
                 Some(5) => {
                     assert_eq!(field.name, "media");
@@ -89,7 +79,33 @@ fn hyper_body() -> Result<()> {
                     assert_eq!(field.name, "commit");
                     assert_eq!(field.filename, None);
                     assert_eq!(field.content_type, None);
-                    assert_eq!(buffer, "Save\r\n");
+                }
+                _ => {}
+            }
+
+            let buffer = field.bytes().await?;
+
+            match field.index {
+                Some(0) => {
+                    assert_eq!(buffer, "put");
+                }
+                Some(1) => {
+                    assert_eq!(buffer, "");
+                }
+                Some(2) => {
+                    assert_eq!(buffer, "");
+                }
+                Some(3) => {
+                    assert_eq!(buffer, "");
+                }
+                Some(4) => {
+                    assert_eq!(buffer, "hello\r\n\r\n\"quote\"");
+                }
+                Some(5) => {
+                    assert_eq!(buffer, "");
+                }
+                Some(6) => {
+                    assert_eq!(buffer, "Save");
                 }
                 _ => {}
             }

@@ -90,7 +90,11 @@ where
     type Item = Result<Bytes>;
 
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
-        log::debug!("polling {} {}", self.index.unwrap_or_default(), self.state.is_some());
+        log::debug!(
+            "polling {} {}",
+            self.index.unwrap_or_default(),
+            self.state.is_some()
+        );
 
         if self.state.is_none() {
             return Poll::Ready(None);
@@ -101,7 +105,7 @@ where
 
         match Pin::new(&mut *state).poll_next(cx)? {
             Poll::Ready(res) => match res {
-                Some(0) | None => {
+                None => {
                     if let Some(waker) = state.waker_mut().take() {
                         waker.wake();
                     }
@@ -109,11 +113,12 @@ where
                     drop(self.state.take());
                     Poll::Ready(None)
                 }
-                Some(len) => {
+                Some(buf) => {
                     // @TODO: need check field payload data length
-                    self.length += len as u64;
-                    log::debug!("polled bytes {}/{}", len, self.length);
-                    Poll::Ready(Some(Ok(state.buffer_mut().split_to(len).freeze())))
+                    self.length += buf.len() as u64;
+                    log::debug!("polled bytes {}/{}", buf.len(), self.length);
+                    // Poll::Ready(Some(Ok(state.buffer_mut().split_to(len).freeze())))
+                    Poll::Ready(Some(Ok(buf)))
                 }
             },
             Poll::Pending => Poll::Pending,

@@ -7,9 +7,11 @@ pub(crate) const CR: u8 = b'\r';
 pub(crate) const LF: u8 = b'\n';
 pub(crate) const DASH: u8 = b'-';
 pub(crate) const CRLF: &[u8; 2] = &[CR, LF]; // `\r\n`
+pub(crate) const CRLFCRLF: &[u8; 4] = &[CR, LF, CR, LF]; // `\r\n\r\n`
+pub(crate) const CRLF_DASH_DASH: &[u8; 4] = &[CR, LF, DASH, DASH]; // `\r\n--`
 
-pub(crate) fn read_until_ctlf(bytes: &[u8]) -> Option<usize> {
-    twoway::find_bytes(bytes, CRLF)
+pub(crate) fn read_until(b: &[u8], sub: &[u8]) -> Option<usize> {
+    twoway::find_bytes(b, sub)
 }
 
 pub(crate) fn parse_content_type(header: Option<&http::HeaderValue>) -> Option<mime::Mime> {

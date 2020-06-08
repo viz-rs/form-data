@@ -47,12 +47,14 @@ where
 
         match Pin::new(&mut *state).poll_next(cx)? {
             Poll::Ready(res) => match res {
-                Some(0) | None => Poll::Ready(None),
-                Some(len) => {
-                    let headers_buffer = state.buffer_mut().split_to(len);
-                    let mut headers = parse_part_headers(&headers_buffer)?;
+                None => {
+                    state.buffer_drop();
+                    return Poll::Ready(None);
+                }
+                Some(buf) => {
+                    let mut headers = parse_part_headers(&buf)?;
 
-                    log::debug!("parse headers {:#?}", &headers_buffer);
+                    log::debug!("parse headers {:#?}", &buf);
 
                     let names = headers.remove(CONTENT_DISPOSITION).map_or_else(
                         || Err(anyhow!("invalid content disposition")),

@@ -2,11 +2,11 @@ use std::fmt;
 use std::pin::Pin;
 use std::task::{Context, Poll, Waker};
 
-use anyhow::{anyhow, Error, Result};
+use anyhow::{Error, Result};
 use bytes::{Buf, Bytes, BytesMut};
 use futures_util::stream::Stream;
 
-use crate::utils::{read_until_ctlf, CR, DASH, LF};
+use crate::utils::{read_until, CR, CRLF, CRLFCRLF, CRLF_DASH_DASH, DASH, LF};
 
 #[derive(Debug, PartialEq)]
 enum Flag {
@@ -14,21 +14,66 @@ enum Flag {
     Body,
 }
 
-struct Cached {
+struct Cursor {
     flag: Flag,
-    dash_boundary: Vec<u8>,
-    dash_boundary_len: usize,
+    crlf_d_b_crlf: Vec<u8>,
+    crlf_d_b_d_crlf: Vec<u8>,
+    x: Option<usize>,
+    y: Option<usize>,
+    z: bool,
 }
 
-impl fmt::Debug for Cached {
+impl Cursor {
+    pub(crate) fn new(boundary: Vec<u8>) -> Self {
+        // `\r\n--boundary\r\n`
+        let mut crlf_d_b_crlf = boundary.clone();
+        crlf_d_b_crlf.insert(0, DASH);
+        crlf_d_b_crlf.insert(0, DASH);
+        crlf_d_b_crlf.insert(0, LF);
+        crlf_d_b_crlf.insert(0, CR);
+
+        // `\r\n--boundary--\r\n`
+        let mut crlf_d_b_d_crlf = crlf_d_b_crlf.clone();
+
+        crlf_d_b_crlf.push(CR);
+        crlf_d_b_crlf.push(LF);
+
+        crlf_d_b_d_crlf.push(DASH);
+        crlf_d_b_d_crlf.push(DASH);
+        crlf_d_b_d_crlf.push(CR);
+        crlf_d_b_d_crlf.push(LF);
+
+        Self {
+            flag: Flag::Body,
+            crlf_d_b_crlf,
+            crlf_d_b_d_crlf,
+            x: None,
+            y: None,
+            z: false,
+        }
+    }
+}
+
+impl fmt::Debug for Cursor {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Cached")
+        f.debug_struct("Cursor")
             .field("flag", &self.flag)
+            .field("x", &self.x)
+            .field("y", &self.y)
+            .field("z", &self.z)
             .field(
-                "dash_boundary",
-                &String::from_utf8_lossy(&self.dash_boundary),
+                "crlf_dash_boundary_crlf",
+                &String::from_utf8_lossy(&self.crlf_d_b_crlf),
             )
-            .field("dash_boundary_len", &self.dash_boundary_len)
+            .field("crlf_dash_boundary_crlf_len", &self.crlf_d_b_crlf.len())
+            .field(
+                "crlf_dash_boundary_dash_crlf",
+                &String::from_utf8_lossy(&self.crlf_d_b_d_crlf),
+            )
+            .field(
+                "crlf_dash_boundary_dash_crlf_len",
+                &self.crlf_d_b_d_crlf.len(),
+            )
             .finish()
     }
 }
@@ -41,17 +86,14 @@ pub struct State<T> {
     index: Option<usize>,
     waker: Option<Waker>,
     buffer: Option<BytesMut>,
-    catched: Cached,
+    cursor: Cursor,
 }
 
 impl<T> State<T> {
     pub fn new<B: AsRef<[u8]>>(b: B, io: T) -> Self {
         // `boundary`
         let boundary = b.as_ref().to_owned();
-        // `--boundary`
-        let mut dash_boundary = boundary.clone();
-        dash_boundary.insert(0, DASH);
-        dash_boundary.insert(0, DASH);
+        let cursor = Cursor::new(boundary.to_owned());
 
         Self {
             io,
@@ -61,11 +103,7 @@ impl<T> State<T> {
             index: None,
             waker: None,
             buffer: None,
-            catched: Cached {
-                flag: Flag::Body,
-                dash_boundary_len: dash_boundary.len(),
-                dash_boundary,
-            },
+            cursor,
         }
     }
 
@@ -89,12 +127,14 @@ impl<T> State<T> {
         self.buffer.as_mut().unwrap()
     }
 
-    pub fn eof(&self) -> bool {
-        self.eof
+    pub fn buffer_drop(&mut self) {
+        if let Some(b) = self.buffer.take() {
+            drop(b);
+        }
     }
 
-    fn eof_mut(&mut self) -> &mut bool {
-        &mut self.eof
+    pub fn eof(&self) -> bool {
+        self.eof
     }
 
     pub fn incr_index(&mut self) -> usize {
@@ -112,26 +152,31 @@ impl<T> State<T> {
         self.index.unwrap_or_default()
     }
 
-    fn flag(&self) -> &Flag {
-        &self.catched.flag
-    }
-
-    fn flag_mut(&mut self) -> &mut Flag {
-        &mut self.catched.flag
-    }
-
     /// `boundary`
     fn boundary(&self) -> &[u8] {
         &self.boundary
     }
 
-    /// `--boundary`
-    fn dash_boundary(&self) -> &[u8] {
-        &self.catched.dash_boundary
+    /// `\r\n--boundary\r\n`
+    fn crlf_d_b_crlf(&self) -> &[u8] {
+        &self.cursor.crlf_d_b_crlf
     }
 
-    fn dash_boundary_len(&self) -> usize {
-        self.catched.dash_boundary_len
+    /// 4: `\r\n--\r\n`
+    fn crlf_d_b_crlf_len(&self) -> usize {
+        // self.boundary.len() + 2 + 2 + 2
+        self.cursor.crlf_d_b_crlf.len()
+    }
+
+    /// `\r\n--boundary--\r\n`
+    fn crlf_d_b_d_crlf(&self) -> &[u8] {
+        &self.cursor.crlf_d_b_d_crlf
+    }
+
+    /// 4: `\r\n----\r\n`
+    fn crlf_d_b_d_crlf_len(&self) -> usize {
+        // self.boundary.len() + 2 + 2 + 2 + 2
+        self.cursor.crlf_d_b_d_crlf.len()
     }
 }
 
@@ -142,7 +187,7 @@ impl<T> fmt::Debug for State<T> {
             .field("eof", &self.eof)
             .field("length", &self.length)
             .field("total", &self.index)
-            .field("catched", &self.catched)
+            .field("cursor", &self.cursor)
             .finish()
     }
 }
@@ -156,98 +201,100 @@ where
     // 0 is EOF!
     // First: if found a boundary then returns size of headers to `Form`
     // Second: returns of payload data to `Field`
-    type Item = Result<usize>;
+    type Item = Result<Bytes>;
 
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         log::debug!("poll stream");
 
         if self.buffer.is_none() {
-            self.buffer.replace(BytesMut::new());
+            // placeholder `\r\n` , let first boundary is `\r\n--boundary`
+            self.buffer.replace(BytesMut::from(&CRLF[..]));
         }
 
-        let mut has_boundary = false;
-        let mut has_headers = 0;
-
         loop {
-            let buffer = &self.buffer()[has_headers..];
-
-            // `\r\n`
-            if let Some(mut idx) = read_until_ctlf(&buffer) {
-                idx += 2;
-
-                // `--boundary\r\n` or `--boundary--\r\n`
-                let diff: usize = idx.saturating_sub(self.dash_boundary_len());
-
-                // `--\r\n`
-                if
-                // Flag::Body == *self.flag()
-                diff == 4
-                    && buffer[idx - 4] == DASH
-                    && buffer[idx - 3] == DASH
-                    && buffer[idx - 2] == CR
-                    && buffer[idx - 1] == LF
-                    && buffer.starts_with(self.dash_boundary())
-                {
-                    *self.eof_mut() = true;
-                    self.buffer_mut().clear();
-                    self.buffer.take();
-                    return Poll::Ready(Some(Ok(0)));
+            if Flag::Body == self.cursor.flag {
+                // `\r\n--`
+                if self.cursor.x == None {
+                    self.cursor.x = read_until(self.buffer(), CRLF_DASH_DASH);
                 }
 
-                // `\r\n`
-                // `--boundary\r\n` is starter of current part,
-                // also it is ended of previous part.
-                // So flag defaults to `Body`
-                if Flag::Body == *self.flag()
-                    && has_boundary == false
-                    && diff == 2
-                    && buffer[idx - 2] == CR
-                    && buffer[idx - 1] == LF
-                    && buffer.starts_with(self.dash_boundary())
-                {
-                    // wakes previous waker of `Field`
-                    if self.index.is_some() && self.waker.is_some() {
-                        return Poll::Ready(None);
+                if let Some(mut x) = self.cursor.x {
+                    if self.index == None && x > 0 {
+                        self.buffer_mut().advance(x);
+                        x = 0;
+                        self.cursor.x.replace(x);
                     }
-                    log::debug!("part {}", self.index.unwrap_or_default());
-                    *self.flag_mut() = Flag::Header;
-                    self.buffer_mut().advance(idx);
-                    has_boundary = true;
-                    idx = 0;
-                }
 
-                match self.flag() {
-                    Flag::Header => {
-                        // ignore
-                        if idx < 2 {
-                            continue;
-                        }
+                    // `\r\n--boundary\r\n`
+                    if self.cursor.y == None {
+                        self.cursor.y = read_until(self.buffer(), self.crlf_d_b_crlf());
+                    }
 
-                        // `\r\n`: end headers
-                        if idx == 2 {
-                            if has_headers > 0 {
-                                log::debug!("part headers");
-                                *self.flag_mut() = Flag::Body;
-                                return Poll::Ready(Some(Ok(has_headers + idx)));
+                    // found new part
+                    if let Some(y) = self.cursor.y {
+                        self.cursor.x = None;
+                        self.cursor.flag = Flag::Header;
+
+                        if self.index.is_some() {
+                            // previous part is end
+                            if y == 0 {
+                                return Poll::Ready(None);
                             }
 
-                            return Poll::Ready(Some(Err(anyhow!("missing headers"))));
+                            // last data of previous part
+                            self.cursor.z = true;
+                            self.cursor.y = None;
+                            return Poll::Ready(Some(Ok(self.buffer_mut().split_to(y).freeze())));
+                        }
+                    }
+
+                    if Flag::Body == self.cursor.flag {
+                        // keep consume data of current part
+                        if x > 0 {
+                            self.cursor.x = None;
+                            return Poll::Ready(Some(Ok(self.buffer_mut().split_to(x).freeze())));
                         }
 
-                        // @TODO: check max headers, single header max size
-                        // `******\r\n`: header
-                        has_headers += idx;
-                        continue;
-                    }
-                    Flag::Body => {
-                        if self.index.is_some() {
-                            return Poll::Ready(Some(Ok(idx)));
+                        // payload data is end
+                        if let Some(z) = read_until(self.buffer(), self.crlf_d_b_d_crlf()) {
+                            self.eof = true;
+                            self.cursor.x = None;
+                            self.cursor.y = None;
+                            self.cursor.flag = Flag::Body;
+
+                            if z == 0 {
+                                let n = self.crlf_d_b_d_crlf_len();
+                                self.buffer_mut().advance(n);
+                                self.length -= self.buffer().len() as u64;
+                                self.buffer_mut().clear();
+                                return Poll::Ready(None);
+                            } else {
+                                // last data of last part
+                                return Poll::Ready(Some(Ok(self
+                                    .buffer_mut()
+                                    .split_to(z)
+                                    .freeze())));
+                            }
                         }
-                        self.buffer_mut().advance(idx);
-                        if self.buffer().len() > 0 {
-                            continue;
-                        }
                     }
+                }
+            }
+
+            if Flag::Header == self.cursor.flag {
+                if self.cursor.z {
+                    self.cursor.z = false;
+                    return Poll::Ready(None);
+                }
+
+                if let Some(h) = read_until(self.buffer(), CRLFCRLF) {
+                    self.cursor.x = None;
+                    self.cursor.y = None;
+                    self.cursor.flag = Flag::Body;
+                    return Poll::Ready(Some(Ok(self
+                        .buffer_mut()
+                        .split_to(h + 4)
+                        .split_off(self.crlf_d_b_crlf_len())
+                        .freeze())));
                 }
             }
 
@@ -260,6 +307,7 @@ where
                 Poll::Ready(Some(Ok(b))) => {
                     let b = b.into();
                     let l = b.len() as u64;
+                    // @TODO: need check field payload data length
                     self.length += l;
                     self.buffer_mut().extend_from_slice(&b);
                     log::debug!("polled bytes {}/{}", l, self.length);

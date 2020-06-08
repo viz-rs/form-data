@@ -82,25 +82,25 @@ while let Some(mut field) = form.try_next().await? {
 
     match field.index {
         Some(0) => {
-            assert_eq!(buffer, "put\r\n");
+            assert_eq!(buffer, "put");
         }
         Some(1) => {
-            assert_eq!(buffer, "\r\n");
+            assert_eq!(buffer, "");
         }
         Some(2) => {
-            assert_eq!(buffer, "\r\n");
+            assert_eq!(buffer, "");
         }
         Some(3) => {
-            assert_eq!(buffer, "\r\n");
+            assert_eq!(buffer, "");
         }
         Some(4) => {
-            assert_eq!(buffer, "hello\r\n\r\n\"quote\"\r\n");
+            assert_eq!(buffer, "hello\r\n\r\n\"quote\"");
         }
         Some(5) => {
             assert_eq!(buffer, "");
         }
         Some(6) => {
-            assert_eq!(buffer, "Save\r\n");
+            assert_eq!(buffer, "Save");
         }
         _ => {}
     }

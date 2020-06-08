@@ -10,6 +10,8 @@ use futures_util::{
 };
 use rand::Rng;
 
+pub const LIMITED: usize = 8 * 1024;
+
 pub struct Limited<T> {
     io: T,
     limit: usize,
@@ -17,12 +19,9 @@ pub struct Limited<T> {
     eof: bool,
 }
 
+#[allow(dead_code)]
 impl<T> Limited<T> {
-    #[allow(dead_code)]
-    pub fn random(io: T) -> Self {
-        let mut rng = rand::thread_rng();
-        let limit = rng.gen_range(1, 8 * 1024);
-
+    pub fn new(io: T, limit: usize) -> Self {
         log::info!("Limited stream by {}", limit);
 
         Self {
@@ -33,19 +32,12 @@ impl<T> Limited<T> {
         }
     }
 
-    #[allow(dead_code)]
+    pub fn random(io: T) -> Self {
+        Self::new(io, rand::thread_rng().gen_range(1, LIMITED))
+    }
+
     pub fn random_with(io: T, max: usize) -> Self {
-        let mut rng = rand::thread_rng();
-        let limit = rng.gen_range(1, max);
-
-        log::info!("Limited stream by {}", limit);
-
-        Self {
-            io,
-            limit,
-            length: 0,
-            eof: false,
-        }
+        Self::new(io, rand::thread_rng().gen_range(1, max))
     }
 }
 
@@ -64,18 +56,17 @@ impl<T: AsyncRead + Unpin + Send + 'static> Stream for Limited<T> {
 
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         let mut buf = BytesMut::new();
+        // zero-fills the space in the read buffer
         buf.resize(self.limit, 0);
 
         match Pin::new(&mut self.io).poll_read(cx, &mut buf[..])? {
+            Poll::Ready(0) => {
+                self.eof = true;
+                return Poll::Ready(None);
+            }
             Poll::Ready(n) => {
-                if n == 0 {
-                    self.eof = true;
-                    return Poll::Ready(None);
-                }
-                if n < self.limit {
-                    buf.truncate(n);
-                }
                 self.length += n as u64;
+                buf.truncate(n);
                 return Poll::Ready(Some(Ok(buf.freeze())));
             }
             Poll::Pending => Poll::Pending,
