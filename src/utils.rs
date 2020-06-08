@@ -3,6 +3,9 @@ use anyhow::{anyhow, Result};
 use http::header::{HeaderMap, HeaderName, HeaderValue};
 use httparse::{parse_headers, Status, EMPTY_HEADER};
 
+const NAME: &[u8; 4] = b"name";
+const FILE_NAME: &[u8; 8] = b"filename";
+const FORM_DATA: &[u8; 9] = b"form-data";
 pub(crate) const CR: u8 = b'\r';
 pub(crate) const LF: u8 = b'\n';
 pub(crate) const DASH: u8 = b'-';
@@ -47,7 +50,7 @@ pub(crate) fn parse_content_disposition(hv: &[u8]) -> Result<(String, Option<Str
     let mut i = 9;
     let form_data = &hv[0..i];
 
-    if form_data != b"form-data" {
+    if form_data != FORM_DATA {
         return Err(anyhow!("invalid content disposition"));
     }
 
@@ -119,10 +122,10 @@ pub(crate) fn parse_content_disposition(hv: &[u8]) -> Result<(String, Option<Str
     }
 
     // name
-    if v[1].0 == b"name" && v[1].1.len() > 0 {
+    if v[1].0 == NAME && v[1].1.len() > 0 {
         return Ok((
             String::from_utf8_lossy(v[1].1).to_string(),
-            if v.len() > 2 && v[2].0 == b"filename" {
+            if v.len() > 2 && v[2].0 == FILE_NAME {
                 Some(String::from_utf8_lossy(v[2].1).to_string())
             } else {
                 None

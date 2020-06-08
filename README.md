@@ -5,7 +5,9 @@
 </div>
 
 <div align="center">
-  <img src="https://img.shields.io/badge/-safety!-success?style=flat-square" alt="Safety!" />
+  <!-- Safety docs -->
+  <a href="/">
+    <img src="https://img.shields.io/badge/-safety!-success?style=flat-square" alt="Safety!" /></a>
   <!-- Docs.rs docs -->
   <a href="https://docs.rs/form-data">
     <img src="https://img.shields.io/badge/docs-latest-blue.svg?style=flat-square"
