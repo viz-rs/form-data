@@ -46,6 +46,7 @@ where
         }
 
         match Pin::new(&mut *state).poll_next(cx)? {
+            Poll::Pending => Poll::Pending,
             Poll::Ready(res) => match res {
                 None => {
                     state.buffer_drop();
@@ -80,7 +81,6 @@ where
                     Poll::Ready(Some(Ok(field)))
                 }
             },
-            Poll::Pending => Poll::Pending,
         }
     }
 }

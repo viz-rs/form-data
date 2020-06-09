@@ -14,7 +14,7 @@ mod limited;
 
 use limited::Limited;
 
-// just use for init logger
+// just using for init logger
 #[test]
 fn a_pretty_env_logger() -> Result<()> {
     assert!(pretty_env_logger::try_init().is_ok());
@@ -151,6 +151,7 @@ fn many_noend() -> Result<()> {
             while let Some(buf) = field.try_next().await? {
                 buffer.extend_from_slice(&buf);
             }
+
 
             match field.index {
                 Some(0) => {

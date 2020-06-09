@@ -1,11 +1,15 @@
 use std::fmt;
+use std::io::Write;
 use std::pin::Pin;
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::task::{Context, Poll};
 
 use anyhow::{anyhow, Error, Result};
 use bytes::{Bytes, BytesMut};
-use futures_util::stream::{Stream, TryStreamExt};
+use futures_util::{
+    io::{self, AsyncRead},
+    stream::{Stream, TryStreamExt},
+};
 
 use crate::State;
 
@@ -81,6 +85,27 @@ impl<T> fmt::Debug for Field<T> {
 }
 
 /// Reads payload data from part, then yields them
+impl<T, O, E> AsyncRead for Field<T>
+where
+    T: Stream<Item = Result<O, E>> + Unpin + Send + 'static,
+    O: Into<Bytes>,
+    E: Into<Error>,
+{
+    fn poll_read(
+        self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+        mut buf: &mut [u8],
+    ) -> Poll<io::Result<usize>> {
+        match self.poll_next(cx) {
+            Poll::Pending => Poll::Pending,
+            Poll::Ready(None) => Poll::Ready(Ok(0)),
+            Poll::Ready(Some(Ok(b))) => Poll::Ready(Ok(buf.write(&b)?)),
+            Poll::Ready(Some(Err(e))) => Poll::Ready(Err(io::Error::new(io::ErrorKind::Other, e))),
+        }
+    }
+}
+
+/// Reads payload data from part, then yields them
 impl<T, O, E> Stream for Field<T>
 where
     T: Stream<Item = Result<O, E>> + Unpin + Send + 'static,
@@ -104,6 +129,7 @@ where
         let mut state = state.try_lock().map_err(|e| anyhow!(e.to_string()))?;
 
         match Pin::new(&mut *state).poll_next(cx)? {
+            Poll::Pending => Poll::Pending,
             Poll::Ready(res) => match res {
                 None => {
                     if let Some(waker) = state.waker_mut().take() {
@@ -121,7 +147,6 @@ where
                     Poll::Ready(Some(Ok(buf)))
                 }
             },
-            Poll::Pending => Poll::Pending,
         }
     }
 }
