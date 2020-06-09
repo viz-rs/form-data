@@ -6,7 +6,7 @@ use anyhow::{Error, Result};
 use bytes::{Buf, Bytes, BytesMut};
 use futures_util::stream::Stream;
 
-use crate::utils::{read_until, CR, CRLF, CRLFCRLF, CRLF_DASH_DASH, DASH, LF};
+use crate::utils::{read_until, CR, CRLF, CRLFCRLF, CRLF_DASH_DASH, DASH, DEFAULT_BUF_SIZE, LF};
 
 #[derive(Debug, PartialEq)]
 enum Flag {
@@ -15,12 +15,12 @@ enum Flag {
 }
 
 struct Cursor {
+    z: bool,
     flag: Flag,
-    crlf_d_b_crlf: Vec<u8>,
-    crlf_d_b_d_crlf: Vec<u8>,
     x: Option<usize>,
     y: Option<usize>,
-    z: bool,
+    crlf_d_b_crlf: Vec<u8>,
+    crlf_d_b_d_crlf: Vec<u8>,
 }
 
 impl Cursor {
@@ -44,12 +44,12 @@ impl Cursor {
         crlf_d_b_d_crlf.push(LF);
 
         Self {
-            flag: Flag::Body,
-            crlf_d_b_crlf,
-            crlf_d_b_d_crlf,
             x: None,
             y: None,
             z: false,
+            crlf_d_b_crlf,
+            crlf_d_b_d_crlf,
+            flag: Flag::Body,
         }
     }
 }
@@ -82,11 +82,11 @@ pub struct State<T> {
     io: T,
     eof: bool,
     length: u64,
+    cursor: Cursor,
     boundary: Vec<u8>,
     index: Option<usize>,
     waker: Option<Waker>,
     buffer: Option<BytesMut>,
-    cursor: Cursor,
 }
 
 impl<T> State<T> {
@@ -97,13 +97,13 @@ impl<T> State<T> {
 
         Self {
             io,
+            cursor,
             boundary,
             length: 0,
             eof: false,
             index: None,
             waker: None,
             buffer: None,
-            cursor,
         }
     }
 
@@ -125,6 +125,10 @@ impl<T> State<T> {
 
     pub fn buffer_mut(&mut self) -> &mut BytesMut {
         self.buffer.as_mut().unwrap()
+    }
+
+    pub fn buffer_split(&mut self, n: usize) -> Bytes {
+        self.buffer_mut().split_to(n).freeze()
     }
 
     pub fn buffer_drop(&mut self) {
@@ -162,7 +166,7 @@ impl<T> State<T> {
         &self.cursor.crlf_d_b_crlf
     }
 
-    /// 4: `\r\n--\r\n`
+    /// 6: `\r\n--\r\n`
     fn crlf_d_b_crlf_len(&self) -> usize {
         // self.boundary.len() + 2 + 2 + 2
         self.cursor.crlf_d_b_crlf.len()
@@ -173,7 +177,7 @@ impl<T> State<T> {
         &self.cursor.crlf_d_b_d_crlf
     }
 
-    /// 4: `\r\n----\r\n`
+    /// 8: `\r\n----\r\n`
     fn crlf_d_b_d_crlf_len(&self) -> usize {
         // self.boundary.len() + 2 + 2 + 2 + 2
         self.cursor.crlf_d_b_d_crlf.len()
@@ -231,9 +235,13 @@ where
                     }
 
                     // found new part
-                    if let Some(y) = self.cursor.y {
-                        self.cursor.x = None;
-                        self.cursor.flag = Flag::Header;
+                    if let Some(mut y) = self.cursor.y {
+                        // Buffer size is limited by 8KB.
+                        // So we need do that for large data.
+                        if y <= DEFAULT_BUF_SIZE {
+                            self.cursor.x = None;
+                            self.cursor.flag = Flag::Header;
+                        }
 
                         if self.index.is_some() {
                             // previous part is end
@@ -241,18 +249,37 @@ where
                                 return Poll::Ready(None);
                             }
 
-                            // last data of previous part
-                            self.cursor.z = true;
-                            self.cursor.y = None;
-                            return Poll::Ready(Some(Ok(self.buffer_mut().split_to(y).freeze())));
+                            // Buffer size is limited by 8KB.
+                            // So we need do that for large data.
+                            let n = if y <= DEFAULT_BUF_SIZE {
+                                self.cursor.z = true;
+                                self.cursor.y = None;
+                                y
+                            } else {
+                                y -= DEFAULT_BUF_SIZE;
+                                self.cursor.y.replace(y);
+                                DEFAULT_BUF_SIZE
+                            };
+
+                            return Poll::Ready(Some(Ok(self.buffer_split(n))));
                         }
                     }
 
                     if Flag::Body == self.cursor.flag {
                         // keep consume data of current part
                         if x > 0 {
-                            self.cursor.x = None;
-                            return Poll::Ready(Some(Ok(self.buffer_mut().split_to(x).freeze())));
+                            // Buffer size is limited by 8KB.
+                            // So we need do that for large data.
+                            let n = if x <= DEFAULT_BUF_SIZE {
+                                self.cursor.x = None;
+                                x
+                            } else {
+                                x -= DEFAULT_BUF_SIZE;
+                                self.cursor.x.replace(x);
+                                DEFAULT_BUF_SIZE
+                            };
+
+                            return Poll::Ready(Some(Ok(self.buffer_split(n))));
                         }
 
                         // payload data is end
@@ -270,12 +297,14 @@ where
                                 return Poll::Ready(None);
                             } else {
                                 // last data of last part
-                                return Poll::Ready(Some(Ok(self
-                                    .buffer_mut()
-                                    .split_to(z)
-                                    .freeze())));
+                                return Poll::Ready(Some(Ok(self.buffer_split(z))));
                             }
                         }
+                    }
+                } else {
+                    // the large data of part
+                    if self.index.is_some() && self.buffer().len() >= DEFAULT_BUF_SIZE {
+                        return Poll::Ready(Some(Ok(self.buffer_split(DEFAULT_BUF_SIZE))));
                     }
                 }
             }
@@ -310,7 +339,7 @@ where
                     // @TODO: need check field payload data length
                     self.length += l;
                     self.buffer_mut().extend_from_slice(&b);
-                    log::debug!("polled bytes {}/{}", l, self.length);
+                    log::debug!("polled bytes {}/{}/{}", l, self.buffer().len(), self.length);
                 }
                 Poll::Ready(None) => {
                     self.eof = true;

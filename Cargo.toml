@@ -1,6 +1,6 @@
 [package]
 name = "form-data"
-version = "0.0.3"
+version = "0.0.4"
 authors = ["Fangdun Cai <cfddream@gmail.com>"]
 edition = "2018"
 description = "AsyncRead/AsyncWrite/Stream `multipart/form-data`"
@@ -26,3 +26,9 @@ pretty_env_logger = "0.4"
 hyper = { version = "0.13", default-features = false, features = ["stream"] }
 futures-util = { version = "0.3", default-features = false, features = ["std", "io", "sink"] }
 rand = "0.7"
+tokio = { version = "0.2", default-features = false, features = ["macros"] }
+tempfile = "3.1"
+
+[[example]]
+name = "hyper"
+path = "examples/hyper.rs"

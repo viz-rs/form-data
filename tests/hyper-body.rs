@@ -2,6 +2,7 @@ use std::fs::{self, File};
 
 use anyhow::{anyhow, Result};
 use bytes::BytesMut;
+use tempfile::tempdir;
 use hyper::Body;
 
 use futures_util::io::{self, AsyncReadExt, AsyncWriteExt};
@@ -68,10 +69,10 @@ fn hyper_body() -> Result<()> {
                     assert_eq!(field.filename, Some("a.txt".into()));
                     assert_eq!(field.content_type, Some(mime::TEXT_PLAIN));
 
-                    fs::create_dir("tests/fixtures/tmp")?;
+                    let dir = tempdir()?;
 
                     let filename = field.filename.as_ref().unwrap();
-                    let filepath = format!("tests/fixtures/tmp/{}", filename);
+                    let filepath = dir.path().join(filename);
 
                     let mut writer = smol::writer(File::create(&filepath)?);
 
@@ -87,8 +88,7 @@ fn hyper_body() -> Result<()> {
                     reader.read_to_end(&mut contents).await?;
                     assert_eq!(contents, "Alpha file content.\r\n".as_bytes());
 
-                    fs::remove_file(filepath)?;
-                    fs::remove_dir("tests/fixtures/tmp")?;
+                    dir.close()?;
                 }
                 Some(3) => {
                     assert_eq!(field.name, "1");

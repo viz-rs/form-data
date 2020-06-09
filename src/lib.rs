@@ -5,6 +5,11 @@
 //!     https://tools.ietf.org/html/rfc7578
 //!     https://developer.mozilla.org/en-US/docs/Web/API/FormData
 //!     https://github.com/jaydenseric/graphql-multipart-request-spec
+//!     https://ec.haxx.se/http/http-multipart
+
+#![forbid(unsafe_code, rust_2018_idioms)]
+#![deny(nonstandard_style)]
+#![warn(missing_docs, missing_doc_code_examples, unreachable_pub)]
 
 mod form;
 mod state;
