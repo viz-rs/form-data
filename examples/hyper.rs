@@ -7,7 +7,7 @@
 //!
 //! fishshell
 //! ```
-//! $ set files tests/fixtures/files/*; for i in (seq (count $files) | sort -R); echo "-F "(string split . (basename $files[$i]))[1]=@$files[$i]; end | string join ' ' | xargs curl -vvv http://127.0.0.1:3000
+//! $ set files tests/fixtures/files/*; for i in (seq (count $files) | sort -R); echo "-F "(string split . (basename $files[$i]))[1]=@$files[$i]; end | string join ' ' | xargs curl -vvv http://127.0.0.1:3000 -F crate=form-data
 //! ```
 //!
 
@@ -28,27 +28,23 @@ use hyper::{header, Body, Request, Response, Server};
 use form_data::FormData;
 
 async fn hello(req: Request<Body>) -> Result<Response<Body>> {
-    let ct = req
+    let m = req
         .headers()
         .get(header::CONTENT_TYPE)
         .and_then(|val| val.to_str().ok())
         .and_then(|val| val.parse::<mime::Mime>().ok())
         .unwrap();
 
-    let boundary = ct
-        .params()
-        .find(|h| h.0 == "boundary")
-        .unwrap()
-        .1
-        .to_string();
-
-    let body = req.into_body();
-
-    let mut form = FormData::new(boundary, body);
-
-    let mut txt = String::new();
+    let mut form = FormData::new(
+        m.get_param(mime::BOUNDARY).unwrap().as_str(),
+        req.into_body(),
+    );
 
     let dir = tempdir()?;
+    let mut txt = String::new();
+
+    txt.push_str(&dir.path().to_string_lossy());
+    txt.push_str("\r\n");
 
     while let Some(mut field) = form.try_next().await? {
         log::info!("{:?}", field);
@@ -84,7 +80,7 @@ async fn hello(req: Request<Body>) -> Result<Response<Body>> {
                 "medium" => 13_196,
                 "large" => 2_413_677,
                 "crate" => 9,
-                _ => 0,
+                _ => bytes,
             }
         );
     }

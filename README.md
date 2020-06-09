@@ -106,7 +106,7 @@ fn hyper_body() -> Result<()> {
                     assert_eq!(field.filename, None);
                     assert_eq!(field.content_type, None);
 
-                    // reads chunks
+                    // read chunks
                     let mut buffer = BytesMut::new();
                     while let Some(buf) = field.try_next().await? {
                         buffer.extend_from_slice(&buf);
@@ -124,7 +124,7 @@ fn hyper_body() -> Result<()> {
                     assert_eq!(field.filename, None);
                     assert_eq!(field.content_type, None);
 
-                    // reads bytes
+                    // read bytes
                     let buffer = field.bytes().await?;
 
                     assert_eq!(buffer, "{ \"0\": [\"0.variables.file\"], \"1\": [\"1.variables.files.0\"], \"2\": [\"1.variables.files.1\"] }");
@@ -146,6 +146,7 @@ fn hyper_body() -> Result<()> {
 
                     let mut writer = smol::writer(File::create(&filepath)?);
 
+                    // copy data to file
                     let bytes = io::copy(field, &mut writer).await?;
                     writer.close().await?;
 
@@ -165,6 +166,7 @@ fn hyper_body() -> Result<()> {
                     assert_eq!(field.filename, Some("b.txt".into()));
                     assert_eq!(field.content_type, Some(mime::TEXT_PLAIN));
 
+                    // read data to buffer
                     let mut buffer = Vec::with_capacity(4);
                     let bytes = field.read_to_end(&mut buffer).await?;
 
@@ -177,6 +179,7 @@ fn hyper_body() -> Result<()> {
                     assert_eq!(field.filename, Some("c.txt".into()));
                     assert_eq!(field.content_type, Some(mime::TEXT_PLAIN));
 
+                    // read data to string
                     let mut string = String::new();
                     let bytes = field.read_to_string(&mut string).await?;
 

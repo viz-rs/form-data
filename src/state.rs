@@ -223,6 +223,7 @@ where
                 }
 
                 if let Some(mut x) = self.cursor.x {
+                    // we dont found first part, so need to consume data
                     if self.index == None && x > 0 {
                         self.buffer_mut().advance(x);
                         x = 0;
@@ -243,6 +244,7 @@ where
                             self.cursor.flag = Flag::Header;
                         }
 
+                        // has previous part
                         if self.index.is_some() {
                             // previous part is end
                             if y == 0 {
@@ -310,11 +312,13 @@ where
             }
 
             if Flag::Header == self.cursor.flag {
+                // previous part is end
                 if self.cursor.z {
                     self.cursor.z = false;
                     return Poll::Ready(None);
                 }
 
+                // found headers of part
                 if let Some(h) = read_until(self.buffer(), CRLFCRLF) {
                     self.cursor.x = None;
                     self.cursor.y = None;
@@ -335,9 +339,9 @@ where
                 Poll::Ready(Some(Err(e))) => return Poll::Ready(Some(Err(e.into()))),
                 Poll::Ready(Some(Ok(b))) => {
                     let b = b.into();
-                    let l = b.len() as u64;
-                    // @TODO: need check field payload data length
-                    self.length += l;
+                    let l = b.len();
+                    // @TODO: need check payload data length
+                    self.length += l as u64;
                     self.buffer_mut().extend_from_slice(&b);
                     log::debug!("polled bytes {}/{}/{}", l, self.buffer().len(), self.length);
                 }
