@@ -64,6 +64,8 @@ fn hyper_body() -> Result<()> {
                     assert_eq!(field.filename, Some("a.txt".into()));
                     assert_eq!(field.content_type, Some(mime::TEXT_PLAIN));
 
+                    fs::create_dir("tests/fixtures/tmp")?;
+
                     let filename = field.filename.as_ref().unwrap();
                     let filepath = format!("tests/fixtures/tmp/{}", filename);
 
@@ -76,6 +78,9 @@ fn hyper_body() -> Result<()> {
                     let metadata = fs::metadata(&filepath)?;
 
                     assert_eq!(metadata.len(), bytes);
+
+                    fs::remove_file(filepath)?;
+                    fs::remove_dir("tests/fixtures/tmp")?;
                 }
                 Some(3) => {
                     assert_eq!(field.name, "1");
