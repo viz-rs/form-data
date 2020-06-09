@@ -111,6 +111,7 @@ fn hyper_body() -> Result<()> {
                         buffer.extend_from_slice(&buf);
                     }
 
+                    assert_eq!(buffer, "[{ \"query\": \"mutation ($file: Upload!) { singleUpload(file: $file) { id } }\", \"variables\": { \"file\": null } }, { \"query\": \"mutation($files: [Upload!]!) { multipleUpload(files: $files) { id } }\", \"variables\": { \"files\": [null, null] } }]");
                     assert_eq!(field.length, buffer.len() as u64);
 
                     assert!(field.consumed());
@@ -125,6 +126,7 @@ fn hyper_body() -> Result<()> {
                     // reads bytes
                     let buffer = field.bytes().await?;
 
+                    assert_eq!(buffer, "{ \"0\": [\"0.variables.file\"], \"1\": [\"1.variables.files.0\"], \"2\": [\"1.variables.files.1\"] }");
                     assert_eq!(field.length, buffer.len() as u64);
 
                     assert!(field.consumed());
@@ -148,8 +150,12 @@ fn hyper_body() -> Result<()> {
 
                     // async ?
                     let metadata = fs::metadata(&filepath)?;
-
                     assert_eq!(metadata.len(), bytes);
+
+                    let mut reader = smol::reader(File::open(&filepath)?);
+                    let mut contents = Vec::new();
+                    reader.read_to_end(&mut contents).await?;
+                    assert_eq!(contents, "Alpha file content.\r\n".as_bytes());
 
                     fs::remove_file(filepath)?;
                     fs::remove_dir("tests/fixtures/tmp")?;
@@ -162,6 +168,7 @@ fn hyper_body() -> Result<()> {
                     let mut buffer = Vec::with_capacity(4);
                     let bytes = field.read_to_end(&mut buffer).await?;
 
+                    assert_eq!(buffer, "Bravo file content.\r\n".as_bytes());
                     assert_eq!(field.length, bytes as u64);
                     assert_eq!(field.length, buffer.len() as u64);
                 }
@@ -173,6 +180,7 @@ fn hyper_body() -> Result<()> {
                     let mut string = String::new();
                     let bytes = field.read_to_string(&mut string).await?;
 
+                    assert_eq!(string, "Charlie file content.\r\n");
                     assert_eq!(field.length, bytes as u64);
                     assert_eq!(field.length, string.len() as u64);
                 }
