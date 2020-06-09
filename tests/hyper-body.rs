@@ -62,6 +62,8 @@ fn hyper_body() -> Result<()> {
                     log::info!("{:#?}", field);
                 }
                 Some(2) => {
+                    log::info!("{:#?}", field);
+
                     assert_eq!(field.name, "0");
                     assert_eq!(field.filename, Some("a.txt".into()));
                     assert_eq!(field.content_type, Some(mime::TEXT_PLAIN));
@@ -99,6 +101,8 @@ fn hyper_body() -> Result<()> {
                     assert_eq!(buffer, "Bravo file content.\r\n".as_bytes());
                     assert_eq!(field.length, bytes as u64);
                     assert_eq!(field.length, buffer.len() as u64);
+
+                    log::info!("{:#?}", field);
                 }
                 Some(4) => {
                     assert_eq!(field.name, "2");
@@ -111,6 +115,8 @@ fn hyper_body() -> Result<()> {
                     assert_eq!(string, "Charlie file content.\r\n");
                     assert_eq!(field.length, bytes as u64);
                     assert_eq!(field.length, string.len() as u64);
+
+                    log::info!("{:#?}", field);
                 }
                 _ => {}
             }
