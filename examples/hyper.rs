@@ -28,6 +28,12 @@ use hyper::{header, Body, Request, Response, Server};
 use form_data::FormData;
 
 async fn hello(req: Request<Body>) -> Result<Response<Body>> {
+    let dir = tempdir()?;
+    let mut txt = String::new();
+
+    txt.push_str(&dir.path().to_string_lossy());
+    txt.push_str("\r\n");
+
     let m = req
         .headers()
         .get(header::CONTENT_TYPE)
@@ -39,12 +45,6 @@ async fn hello(req: Request<Body>) -> Result<Response<Body>> {
         m.get_param(mime::BOUNDARY).unwrap().as_str(),
         req.into_body(),
     );
-
-    let dir = tempdir()?;
-    let mut txt = String::new();
-
-    txt.push_str(&dir.path().to_string_lossy());
-    txt.push_str("\r\n");
 
     while let Some(mut field) = form.try_next().await? {
         log::info!("{:?}", field);
@@ -105,7 +105,13 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     let addr = ([127, 0, 0, 1], 3000).into();
 
-    let server = Server::bind(&addr).serve(make_svc);
+    let server = Server::bind(&addr)
+        // AsyncRead limit 8KB.
+        // https://docs.rs/futures-util/0.3.5/src/futures_util/io/mod.rs.html#23-26
+        // But hyper is ~ 400b by defaults.
+        // https://docs.rs/hyper/0.13.6/hyper/server/struct.Builder.html#method.http1_max_buf_size
+        // .http1_max_buf_size(8 * 1024)
+        .serve(make_svc);
 
     println!("Listening on http://{}", addr);
 
