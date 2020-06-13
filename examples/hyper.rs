@@ -1,22 +1,22 @@
 //!
 //! Run with
 //!
-//! Max buffer size is 512KB by defaults.
+//! Max buffer size is 8KB by defaults.
 //!
 //! ```
-//! // 512KB
-//! $ RUST_LOG=info cargo run --example hyper -- --nocapture
-//!
 //! // 8KB
 //! $ RUST_LOG=info cargo run --example hyper -- --nocapture --size=8
 //!
 //! // 64KB
 //! $ RUST_LOG=info cargo run --example hyper -- --nocapture --size=64
+//!
+//! // 512KB
+//! $ RUST_LOG=info cargo run --example hyper -- --nocapture --size=512
 //! ```
 //!
 //! Fish shell
 //! ```
-//! $ set files tests/fixtures/files/*; for i in (seq (count $files) | sort -R); echo "-F "(string split . (basename $files[$i]))[1]=@$files[$i]; end | string join ' ' | xargs curl -vvv http://127.0.0.1:3000 -F crate=form-data
+//! $ set files tests/fixtures/files/*; for i in (seq (count $files) | sort -R); echo "-F "(string split . (basename $files[$i]))[1]=@$files[$i]; end | string join ' ' | xargs time curl -vvv http://127.0.0.1:3000 -F crate=form-data
 //! ```
 
 #![deny(warnings)]
@@ -126,8 +126,8 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     let mut arg = env::args()
         .find(|a| a.starts_with("--size="))
-        .unwrap_or_else(|| "--size=512".to_string());
-    let size = arg.split_off(7).parse::<usize>()?;
+        .unwrap_or_else(|| "--size=8".to_string());
+    let size = arg.split_off(7).parse::<usize>().ok_or_else(|| 8);
 
     // For every connection, we must make a `Service` to handle all
     // incoming HTTP requests on said connection.
@@ -140,13 +140,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     let addr = ([127, 0, 0, 1], 3000).into();
 
-    let server = Server::bind(&addr)
-        // AsyncRead limit 8KB.
-        // https://docs.rs/futures-util/0.3.5/src/futures_util/io/mod.rs.html#23-26
-        // But hyper is ~ 400b by defaults.
-        // https://docs.rs/hyper/0.13.6/hyper/server/struct.Builder.html#method.http1_max_buf_size
-        // .http1_max_buf_size(8 * 1024)
-        .serve(make_svc);
+    let server = Server::bind(&addr).serve(make_svc);
 
     println!("Listening on http://{}", addr);
     println!("FormData max buffer size is {}KB", size);

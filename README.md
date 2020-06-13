@@ -33,13 +33,13 @@
 
 - **Fast**: Hyper supports bigger buffer by defaults, over 8KB, up to 512KB possible.
 
-    If we want to receive large buffer, and save them to writer or file. See [hyper example](examples/hyper.rs)
+  If we want to receive large buffer, and save them to writer or file. See [hyper example](examples/hyper.rs):
 
-    -. Set `max_buf_size` to FormData, `form_data.set_max_buf_size(512 * 1024)?;`.
+  - Set `max_buf_size` to FormData, `form_data.set_max_buf_size(512 * 1024)?;`
 
-    -. Use `copy_to`, copy bigger buffer to a writer(`AsyncRead`), `field.copy_to(&mut writer)`.
+  - Use `copy_to`, copy bigger buffer to a writer(`AsyncRead`), `field.copy_to(&mut writer)`
 
-    -. Use `copy_to_file`, copy bigger buffer to a file(`File`), `field.copy_to_file(file)`.
+  - Use `copy_to_file`, copy bigger buffer to a file(`File`), `field.copy_to_file(file)`
 
 - Preparse headers of part
 
