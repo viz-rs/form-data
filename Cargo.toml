@@ -7,7 +7,7 @@ description = "AsyncRead/AsyncWrite/Stream `multipart/form-data`"
 homepage = "https://github.com/viz-rs/form-data"
 license = "MIT/Apache-2.0"
 readme = "README.md"
-keywords = ["async", "form-data", "multipart", "http", "hyper", "upload"]
+keywords = ["async", "form-data", "multipart", "http", "hyper"]
 categories = ["asynchronous", "web-programming", "web-programming::http-server"]
 
 [dependencies]
