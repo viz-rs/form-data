@@ -127,7 +127,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let mut arg = env::args()
         .find(|a| a.starts_with("--size="))
         .unwrap_or_else(|| "--size=8".to_string());
-    let size = arg.split_off(7).parse::<usize>().ok_or_else(|| 8);
+    let size = arg.split_off(7).parse::<usize>().unwrap_or_else(|_| 8);
 
     // For every connection, we must make a `Service` to handle all
     // incoming HTTP requests on said connection.
