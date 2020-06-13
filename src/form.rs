@@ -26,6 +26,14 @@ impl<T> FormData<T> {
     pub fn state(&self) -> Arc<Mutex<State<T>>> {
         self.state.clone()
     }
+
+    pub fn set_max_buf_size(&mut self, max: usize) -> Result<()> {
+        self.state
+            .try_lock()
+            .map_err(|e| anyhow!(e.to_string()))?
+            .set_max_buf_size(max);
+        Ok(())
+    }
 }
 
 /// Reads form-data from request payload body, then yields `Field`

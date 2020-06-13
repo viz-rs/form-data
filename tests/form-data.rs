@@ -152,7 +152,6 @@ fn many_noend() -> Result<()> {
                 buffer.extend_from_slice(&buf);
             }
 
-
             match field.index {
                 Some(0) => {
                     assert_eq!(field.name, "_method");

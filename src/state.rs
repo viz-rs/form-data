@@ -87,6 +87,7 @@ pub struct State<T> {
     index: Option<usize>,
     waker: Option<Waker>,
     buffer: Option<BytesMut>,
+    max_buf_size: usize,
 }
 
 impl<T> State<T> {
@@ -104,7 +105,17 @@ impl<T> State<T> {
             index: None,
             waker: None,
             buffer: None,
+            max_buf_size: DEFAULT_BUF_SIZE,
         }
+    }
+
+    pub fn set_max_buf_size(&mut self, max: usize) {
+        assert!(
+            max >= DEFAULT_BUF_SIZE,
+            "The max_buf_size cannot be smaller than {}.",
+            DEFAULT_BUF_SIZE,
+        );
+        self.max_buf_size = max;
     }
 
     pub fn io_mut(&mut self) -> &mut T {
@@ -215,6 +226,8 @@ where
             self.buffer.replace(BytesMut::from(&CRLF[..]));
         }
 
+        let max_buf_size = self.max_buf_size;
+
         loop {
             if Flag::Body == self.cursor.flag {
                 // `\r\n--`
@@ -239,7 +252,7 @@ where
                     if let Some(mut y) = self.cursor.y {
                         // Buffer size is limited by 8KB.
                         // So we need do that for large data.
-                        if y <= DEFAULT_BUF_SIZE {
+                        if y < max_buf_size {
                             self.cursor.x = None;
                             self.cursor.flag = Flag::Header;
                         }
@@ -253,14 +266,14 @@ where
 
                             // Buffer size is limited by 8KB.
                             // So we need do that for large data.
-                            let n = if y <= DEFAULT_BUF_SIZE {
+                            let n = if y < max_buf_size {
                                 self.cursor.z = true;
                                 self.cursor.y = None;
                                 y
                             } else {
-                                y -= DEFAULT_BUF_SIZE;
+                                y -= max_buf_size;
                                 self.cursor.y.replace(y);
-                                DEFAULT_BUF_SIZE
+                                max_buf_size
                             };
 
                             return Poll::Ready(Some(Ok(self.buffer_split(n))));
@@ -272,13 +285,13 @@ where
                         if x > 0 {
                             // Buffer size is limited by 8KB.
                             // So we need do that for large data.
-                            let n = if x <= DEFAULT_BUF_SIZE {
+                            let n = if x < max_buf_size {
                                 self.cursor.x = None;
                                 x
                             } else {
-                                x -= DEFAULT_BUF_SIZE;
+                                x -= max_buf_size;
                                 self.cursor.x.replace(x);
-                                DEFAULT_BUF_SIZE
+                                max_buf_size
                             };
 
                             return Poll::Ready(Some(Ok(self.buffer_split(n))));
@@ -305,8 +318,8 @@ where
                     }
                 } else {
                     // the large data of part
-                    if self.index.is_some() && self.buffer().len() >= DEFAULT_BUF_SIZE {
-                        return Poll::Ready(Some(Ok(self.buffer_split(DEFAULT_BUF_SIZE))));
+                    if self.index.is_some() && self.buffer().len() > max_buf_size {
+                        return Poll::Ready(Some(Ok(self.buffer_split(max_buf_size))));
                     }
                 }
             }

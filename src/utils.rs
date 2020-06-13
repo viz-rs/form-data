@@ -12,7 +12,7 @@ pub(crate) const DASH: u8 = b'-';
 pub(crate) const CRLF: &[u8; 2] = &[CR, LF]; // `\r\n`
 pub(crate) const CRLFCRLF: &[u8; 4] = &[CR, LF, CR, LF]; // `\r\n\r\n`
 pub(crate) const CRLF_DASH_DASH: &[u8; 4] = &[CR, LF, DASH, DASH]; // `\r\n--`
-// https://github.com/rust-lang/rust/blob/master/src/libstd/sys_common/io.rs#L1
+                                                                   // https://github.com/rust-lang/rust/blob/master/src/libstd/sys_common/io.rs#L1
 pub(crate) const DEFAULT_BUF_SIZE: usize = 8 * 1024;
 
 pub(crate) fn read_until(b: &[u8], sub: &[u8]) -> Option<usize> {
