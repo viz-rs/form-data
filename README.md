@@ -33,7 +33,8 @@
 
 - **Fast**: Hyper supports bigger buffer by defaults, over 8KB, up to 512KB possible.
 
-  If we want to receive large buffer, and save them to writer or file. See [hyper example](examples/hyper.rs):
+  AsyncRead is limited to **8KB**. So if we want to receive large buffer,
+  and save them to writer or file. See [hyper example](examples/hyper.rs):
 
   - Set `max_buf_size` to FormData, `form_data.set_max_buf_size(512 * 1024)?;`
 
