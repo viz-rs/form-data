@@ -112,6 +112,19 @@ impl<T> Field<T> {
         Ok(n as u64)
         // }).await
     }
+
+    /// Ignores current field data, pass it
+    pub async fn ignore<O, E>(mut self) -> Result<()>
+    where
+        T: Stream<Item = Result<O, E>> + Unpin + Send + 'static,
+        O: Into<Bytes>,
+        E: Into<Error>,
+    {
+        while let Some(buf) = self.try_next().await? {
+            drop(buf);
+        }
+        Ok(())
+    }
 }
 
 impl<T> fmt::Debug for Field<T> {

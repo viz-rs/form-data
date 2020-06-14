@@ -79,6 +79,9 @@ async fn hello(size: usize, req: Request<Body>) -> Result<Response<Body>> {
                     bytes = copy(field, &mut writer).await?;
                     writer.close().await?;
                 }
+                Some("iso") => {
+                    field.ignore().await?;
+                }
                 _ => {
                     // 8KB <= buffer <= 512KB
                     // let mut writer = smol::writer(File::create(&filepath)?);
