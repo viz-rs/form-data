@@ -5,9 +5,10 @@
 </div>
 
 <div align="center">
-  <!-- Safety docs -->
+  <!-- Safety -->
   <a href="/">
-    <img src="https://img.shields.io/badge/-safety!-success?style=flat-square" alt="Safety!" /></a>
+    <img src="https://img.shields.io/badge/-safety!-success?style=flat-square"
+      alt="Safety!" /></a>
   <!-- Docs.rs docs -->
   <a href="https://docs.rs/form-data">
     <img src="https://img.shields.io/badge/docs-latest-blue.svg?style=flat-square"
@@ -22,7 +23,8 @@
       alt="Download" /></a>
   <!-- Twitter -->
   <a href="https://twitter.com/_fundon">
-    <img src="https://img.shields.io/badge/twitter-@__fundon-blue.svg?style=flat-square" alt="Twitter: @_fundon" /></a>
+    <img src="https://img.shields.io/badge/twitter-@__fundon-blue.svg?style=flat-square"
+      alt="Twitter: @_fundon" /></a>
 </div>
 
 ## Features
