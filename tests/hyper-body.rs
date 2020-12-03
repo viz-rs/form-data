@@ -1,5 +1,3 @@
-use std::fs::{self};
-
 use anyhow::{anyhow, Result};
 use async_fs::File;
 use bytes::BytesMut;
@@ -83,7 +81,7 @@ fn hyper_body() -> Result<()> {
                     writer.close().await?;
 
                     // async ?
-                    let metadata = fs::metadata(&filepath)?;
+                    let metadata = std::fs::metadata(&filepath)?;
                     assert_eq!(metadata.len(), bytes);
 
                     let mut reader = File::open(&filepath).await?;
