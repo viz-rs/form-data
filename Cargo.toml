@@ -27,12 +27,13 @@ http = "0.2"
 httparse = "1.3"
 log = "0.4"
 mime = "0.3"
-mime-db = "0.1"
+mime-db = "1.1"
 thiserror = "1.0"
 twoway = "0.2"
 
 [dev-dependencies]
-smol = "0.1"
+smol = "1.2"
+async-fs = "1.5"
 pretty_env_logger = "0.4"
 hyper = { git = "https://github.com/hyperium/hyper.git", version = "0.14.0-dev", features = ["stream", "server", "http1", "tcp"] }
 rand = "0.7"

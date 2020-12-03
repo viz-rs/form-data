@@ -1,7 +1,5 @@
-use std::fs::File;
-// use std::thread;
-
 use anyhow::{anyhow, Result};
+use async_fs::File;
 
 use bytes::BytesMut;
 use http::HeaderMap;
@@ -23,9 +21,8 @@ fn a_pretty_env_logger() -> Result<()> {
 
 #[test]
 fn empty() -> Result<()> {
-    // dont use `smol::run`, we need Multi-threaded
     smol::block_on(async {
-        let body = Limited::random(smol::reader(File::open("tests/fixtures/empty.txt")?));
+        let body = Limited::random(File::open("tests/fixtures/empty.txt").await?);
 
         let mut form = FormData::new("", body);
 
@@ -50,9 +47,8 @@ fn empty() -> Result<()> {
 
 #[test]
 fn many() -> Result<()> {
-    // dont use `smol::run`, we need Multi-threaded
     smol::block_on(async {
-        let body = Limited::random(smol::reader(File::open("tests/fixtures/many.txt")?));
+        let body = Limited::random(File::open("tests/fixtures/many.txt").await?);
 
         let mut form = FormData::new("----WebKitFormBoundaryWLHCs9qmcJJoyjKR", body);
 
@@ -137,9 +133,8 @@ fn many() -> Result<()> {
 
 #[test]
 fn many_noend() -> Result<()> {
-    // dont use `smol::run`, we need Multi-threaded
     smol::block_on(async {
-        let body = Limited::random(smol::reader(File::open("tests/fixtures/many-noend.txt")?));
+        let body = Limited::random(File::open("tests/fixtures/many-noend.txt").await?);
 
         let mut form = FormData::new("----WebKitFormBoundaryWLHCs9qmcJJoyjKR", body);
 
@@ -224,9 +219,8 @@ fn many_noend() -> Result<()> {
 
 #[test]
 fn headers() -> Result<()> {
-    // dont use `smol::run`, we need Multi-threaded
     smol::block_on(async {
-        let body = Limited::random(smol::reader(File::open("tests/fixtures/headers.txt")?));
+        let body = Limited::random(File::open("tests/fixtures/headers.txt").await?);
 
         let mut form = FormData::new("boundary", body);
 
@@ -272,9 +266,8 @@ fn headers() -> Result<()> {
 
 #[test]
 fn sample() -> Result<()> {
-    // dont use `smol::run`, we need Multi-threaded
     smol::block_on(async {
-        let body = Limited::random(smol::reader(File::open("tests/fixtures/sample.txt")?));
+        let body = Limited::random(File::open("tests/fixtures/sample.txt").await?);
 
         let mut form = FormData::new("--------------------------434049563556637648550474", body);
 
@@ -359,9 +352,8 @@ fn sample() -> Result<()> {
 
 #[test]
 fn sample_lf() -> Result<()> {
-    // dont use `smol::run`, we need Multi-threaded
     smol::block_on(async {
-        let body = Limited::random(smol::reader(File::open("tests/fixtures/sample.lf.txt")?));
+        let body = Limited::random(File::open("tests/fixtures/sample.lf.txt").await?);
 
         let mut form = FormData::new("--------------------------434049563556637648550474", body);
 
@@ -393,11 +385,10 @@ fn sample_lf() -> Result<()> {
 
 #[test]
 fn graphql() -> Result<()> {
-    // dont use `smol::run`, we need Multi-threaded
     smol::block_on(async {
-        let body = Limited::random(smol::reader(File::open("tests/fixtures/graphql.txt")?));
-        // let body = Limited::random_with(smol::reader(File::open("tests/fixtures/graphql.txt")?), 1024);
-        // let body = Limited::new(smol::reader(File::open("tests/fixtures/graphql.txt")?), 1033);
+        let body = Limited::random(File::open("tests/fixtures/graphql.txt").await?);
+        // let body = Limited::random_with(File::open("tests/fixtures/graphql.txt").await?, 1024);
+        // let body = Limited::new(File::open("tests/fixtures/graphql.txt").await?, 1033);
 
         let mut form = FormData::new("------------------------627436eaefdbc285", body);
 

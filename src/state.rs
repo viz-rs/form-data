@@ -1,6 +1,8 @@
-use std::fmt;
-use std::pin::Pin;
-use std::task::{Context, Poll, Waker};
+use std::{
+    fmt,
+    pin::Pin,
+    task::{Context, Poll, Waker},
+};
 
 use anyhow::{Error, Result};
 use bytes::{Buf, Bytes, BytesMut};

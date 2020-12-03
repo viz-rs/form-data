@@ -1,12 +1,15 @@
-use std::fs::{self, File};
+use std::fs::{self};
 
 use anyhow::{anyhow, Result};
+use async_fs::File;
 use bytes::BytesMut;
 use hyper::Body;
 use tempfile::tempdir;
 
-use futures_util::io::{self, AsyncReadExt, AsyncWriteExt};
-use futures_util::stream::TryStreamExt;
+use futures_util::{
+    io::{self, AsyncReadExt, AsyncWriteExt},
+    stream::TryStreamExt,
+};
 
 use form_data::*;
 
@@ -18,7 +21,7 @@ fn hyper_body() -> Result<()> {
     pretty_env_logger::try_init()?;
 
     smol::block_on(async {
-        let payload = smol::reader(File::open("tests/fixtures/graphql.txt")?);
+        let payload = File::open("tests/fixtures/graphql.txt").await?;
         let stream = Limited::random_with(payload, 256);
 
         let body = Body::wrap_stream(stream);
@@ -74,7 +77,7 @@ fn hyper_body() -> Result<()> {
                     let filename = field.filename.as_ref().unwrap();
                     let filepath = dir.path().join(filename);
 
-                    let mut writer = smol::writer(File::create(&filepath)?);
+                    let mut writer = File::create(&filepath).await?;
 
                     let bytes = io::copy(field, &mut writer).await?;
                     writer.close().await?;
@@ -83,7 +86,7 @@ fn hyper_body() -> Result<()> {
                     let metadata = fs::metadata(&filepath)?;
                     assert_eq!(metadata.len(), bytes);
 
-                    let mut reader = smol::reader(File::open(&filepath)?);
+                    let mut reader = File::open(&filepath).await?;
                     let mut contents = Vec::new();
                     reader.read_to_end(&mut contents).await?;
                     assert_eq!(contents, "Alpha file content.\r\n".as_bytes());

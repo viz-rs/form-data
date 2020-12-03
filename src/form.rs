@@ -1,15 +1,18 @@
-use std::pin::Pin;
-use std::sync::{Arc, Mutex};
-use std::task::{Context, Poll};
+use std::{
+    pin::Pin,
+    sync::{Arc, Mutex},
+    task::{Context, Poll},
+};
 
 use anyhow::{anyhow, Error, Result};
 use bytes::Bytes;
 use futures_util::stream::Stream;
 use http::header::{CONTENT_DISPOSITION, CONTENT_TYPE};
 
-use crate::utils::{parse_content_disposition, parse_content_type, parse_part_headers};
-use crate::Field;
-use crate::State;
+use crate::{
+    utils::{parse_content_disposition, parse_content_type, parse_part_headers},
+    Field, State,
+};
 
 pub struct FormData<T> {
     state: Arc<Mutex<State<T>>>,

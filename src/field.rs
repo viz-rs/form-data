@@ -1,11 +1,13 @@
-use std::fmt;
-use std::fs::File;
-use std::future::Future;
-use std::io::{IoSlice, IoSliceMut, Write};
-use std::path::Path;
-use std::pin::Pin;
-use std::sync::{Arc, Mutex, MutexGuard};
-use std::task::{Context, Poll};
+use std::{
+    fmt,
+    fs::File,
+    future::Future,
+    io::{IoSlice, IoSliceMut, Write},
+    path::Path,
+    pin::Pin,
+    sync::{Arc, Mutex, MutexGuard},
+    task::{Context, Poll},
+};
 
 use anyhow::{anyhow, Error, Result};
 use bytes::{Bytes, BytesMut};
@@ -103,14 +105,12 @@ impl<T> Field<T> {
         O: Into<Bytes>,
         E: Into<Error>,
     {
-        // smol::blocking!(async move {
         let mut n = 0;
         while let Some(buf) = self.try_next().await? {
             n += file.write(&buf)?;
         }
         file.flush()?;
         Ok(n as u64)
-        // }).await
     }
 
     /// Ignores current field data, pass it

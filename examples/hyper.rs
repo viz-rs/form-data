@@ -21,18 +21,23 @@
 
 #![deny(warnings)]
 
-use std::convert::Infallible;
-use std::env;
-use std::fs::File;
+use std::{convert::Infallible, env};
 
 use anyhow::Result;
 use tempfile::tempdir;
 
-use futures_util::io::{copy, AsyncWriteExt};
-use futures_util::stream::TryStreamExt;
+use futures_util::{
+    io::{copy, AsyncWriteExt},
+    stream::TryStreamExt,
+};
 
-use hyper::service::{make_service_fn, service_fn};
-use hyper::{header, Body, Request, Response, Server};
+use hyper::{
+    header,
+    service::{make_service_fn, service_fn},
+    Body, Request, Response, Server,
+};
+
+use async_fs::File;
 
 use form_data::FormData;
 
@@ -75,7 +80,7 @@ async fn hello(size: usize, req: Request<Body>) -> Result<Response<Body>> {
             match filepath.extension().and_then(|s| s.to_str()) {
                 Some("txt") => {
                     // buffer <= 8KB
-                    let mut writer = smol::writer(File::create(&filepath)?);
+                    let mut writer = File::create(&filepath).await?;
                     bytes = copy(field, &mut writer).await?;
                     writer.close().await?;
                 }
@@ -84,10 +89,10 @@ async fn hello(size: usize, req: Request<Body>) -> Result<Response<Body>> {
                 }
                 _ => {
                     // 8KB <= buffer <= 512KB
-                    // let mut writer = smol::writer(File::create(&filepath)?);
+                    // let mut writer = File::create(&filepath).await?;
                     // bytes = field.copy_to(&mut writer).await?;
 
-                    let writer = File::create(&filepath)?;
+                    let writer = std::fs::File::create(&filepath)?;
                     bytes = field.copy_to_file(writer).await?;
                 }
             }
