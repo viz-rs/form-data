@@ -9,7 +9,6 @@ license = "MIT/Apache-2.0"
 readme = "README.md"
 keywords = ["async", "form-data", "multipart", "http", "hyper"]
 categories = ["asynchronous", "web-programming", "web-programming::http-server"]
-publish = false
 
 include = [
   "Cargo.toml",
