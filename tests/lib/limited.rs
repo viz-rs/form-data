@@ -22,7 +22,7 @@ pub struct Limited<T> {
 #[allow(dead_code)]
 impl<T> Limited<T> {
     pub fn new(io: T, limit: usize) -> Self {
-        log::info!("Limited stream by {}", limit);
+        tracing::info!("Limited stream by {}", limit);
 
         Self {
             io,
@@ -33,11 +33,11 @@ impl<T> Limited<T> {
     }
 
     pub fn random(io: T) -> Self {
-        Self::new(io, rand::thread_rng().gen_range(1, LIMITED))
+        Self::new(io, rand::thread_rng().gen_range(1..LIMITED))
     }
 
     pub fn random_with(io: T, max: usize) -> Self {
-        Self::new(io, rand::thread_rng().gen_range(1, max))
+        Self::new(io, rand::thread_rng().gen_range(1..max))
     }
 }
 

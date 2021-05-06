@@ -1,10 +1,10 @@
 //! Read/write `multipart/form-data`, implemented rfc7578
-//! Supports `Stream`, `Future`, `AsyncRead`, `AsyncWrite`
+//! Supports `Stream`, `Sink`, `Future`, `AsyncRead`, `AsyncWrite`
 //!
 //! AsyncRead limit 8KB.
-//! https://docs.rs/futures-util/0.3.5/src/futures_util/io/mod.rs.html#23-26
+//! https://docs.rs/futures-util/0.3/src/futures_util/io/mod.rs.html#37-40
 //! But hyper is ~ 400kb by defaults.
-//! https://docs.rs/hyper/0.13.6/hyper/server/struct.Builder.html#method.http1_max_buf_size
+//! https://docs.rs/hyper/0.14/hyper/server/struct.Builder.html#method.http1_max_buf_size
 //!
 //! Links:
 //!     https://tools.ietf.org/html/rfc7578
@@ -21,8 +21,8 @@ mod form;
 mod state;
 mod utils;
 
-pub const MAX_HEADERS: usize = 8 * 2;
+pub use form::FormData;
 
 pub use field::Field;
-pub use form::FormData;
+
 pub use state::State;

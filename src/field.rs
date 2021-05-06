@@ -1,71 +1,71 @@
 use std::{
     fmt,
     fs::File,
-    future::Future,
-    io::{IoSlice, IoSliceMut, Write},
-    path::Path,
+    io::Write,
     pin::Pin,
-    sync::{Arc, Mutex, MutexGuard},
+    sync::{Arc, Mutex},
     task::{Context, Poll},
 };
 
 use anyhow::{anyhow, Error, Result};
 use bytes::{Bytes, BytesMut};
 use futures_util::{
-    io::{self, AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt},
+    io::{self, AsyncRead, AsyncWrite, AsyncWriteExt},
     stream::{Stream, TryStreamExt},
 };
 
 use crate::State;
 
-pub struct Field<T> {
-    pub name: String,
-    pub index: Option<usize>,
-    pub filename: Option<String>,
-    pub content_type: Option<mime::Mime>,
-    pub headers: Option<http::HeaderMap>,
+/// Field
+pub struct Field<'a, T> {
+    /// The payload size of Field.
     pub length: u64,
-    state: Option<Arc<Mutex<State<T>>>>,
+    /// The index of Field.
+    pub index: usize,
+    /// The name of Field.
+    pub name: String,
+    /// The filename of Field, optinal.
+    pub filename: Option<String>,
+    /// The content_type of Field, optinal.
+    pub content_type: Option<mime::Mime>,
+    /// The extras headers of Field, optinal.
+    pub headers: Option<http::HeaderMap>,
+    state: Option<Arc<Mutex<State<'a, T>>>>,
 }
 
-impl<T> Field<T> {
+impl<'a, T> Field<'a, T> {
+    /// Creates an empty field.
     pub fn empty() -> Self {
         Self {
+            index: 0,
+            length: 0,
             name: String::new(),
-            content_type: None,
             filename: None,
+            content_type: None,
             headers: None,
             state: None,
-            index: None,
-            length: 0,
         }
     }
 
+    /// Gets mutable headers.
     pub fn headers_mut(&mut self) -> &mut Option<http::HeaderMap> {
         &mut self.headers
     }
 
-    pub fn state_mut(&mut self) -> &mut Option<Arc<Mutex<State<T>>>> {
+    /// Gets mutable state.
+    pub fn state_mut(&mut self) -> &mut Option<Arc<Mutex<State<'a, T>>>> {
         &mut self.state
     }
 
-    pub fn state(&self) -> Result<MutexGuard<'_, State<T>>> {
-        self.state
-            .as_ref()
-            .unwrap()
-            .try_lock()
-            .map_err(|e| anyhow!(e.to_string()))
-    }
-
+    /// Gets the status of state.
     pub fn consumed(&self) -> bool {
         self.state.is_none()
     }
 
-    /// Reads field data to bytes
-    pub async fn bytes<O, E>(&mut self) -> Result<Bytes>
+    /// Reads field data to bytes.
+    pub async fn bytes<E>(&mut self) -> Result<Bytes>
     where
-        T: Stream<Item = Result<O, E>> + Unpin + Send + 'static,
-        O: Into<Bytes>,
+        T: Stream<Item = Result<Bytes, E>> + Unpin,
         E: Into<Error>,
     {
         let mut bytes = BytesMut::new();
@@ -79,10 +79,9 @@ impl<T> Field<T> {
     /// 8KB <= buffer <= 512KB, so if we want to handle large buffer.
     /// `Form::set_max_buf_size(512 * 1024);`
     /// 3~4x performance improvement over the 8KB limitation of AsyncRead.
-    pub async fn copy_to<O, E, W>(mut self, writer: &mut W) -> Result<u64>
+    pub async fn copy_to<E, W>(&mut self, writer: &mut W) -> Result<u64>
     where
-        T: Stream<Item = Result<O, E>> + Unpin + Send + 'static,
-        O: Into<Bytes>,
+        T: Stream<Item = Result<Bytes, E>> + Unpin,
         E: Into<Error>,
         W: AsyncWrite + Send + Unpin + 'static,
     {
@@ -99,10 +98,9 @@ impl<T> Field<T> {
     /// 8KB <= buffer <= 512KB, so if we want to handle large buffer.
     /// `Form::set_max_buf_size(512 * 1024);`
     /// 4x+ performance improvement over the 8KB limitation of AsyncRead.
-    pub async fn copy_to_file<O, E>(mut self, mut file: File) -> Result<u64>
+    pub async fn copy_to_file<E>(&mut self, mut file: File) -> Result<u64>
     where
-        T: Stream<Item = Result<O, E>> + Unpin + Send + 'static,
-        O: Into<Bytes>,
+        T: Stream<Item = Result<Bytes, E>> + Unpin,
         E: Into<Error>,
     {
         let mut n = 0;
@@ -113,11 +111,10 @@ impl<T> Field<T> {
         Ok(n as u64)
     }
 
-    /// Ignores current field data, pass it
-    pub async fn ignore<O, E>(mut self) -> Result<()>
+    /// Ignores current field data, pass it.
+    pub async fn ignore<E>(&mut self) -> Result<()>
     where
-        T: Stream<Item = Result<O, E>> + Unpin + Send + 'static,
-        O: Into<Bytes>,
+        T: Stream<Item = Result<Bytes, E>> + Unpin,
         E: Into<Error>,
     {
         while let Some(buf) = self.try_next().await? {
@@ -127,7 +124,7 @@ impl<T> Field<T> {
     }
 }
 
-impl<T> fmt::Debug for Field<T> {
+impl<'a, T> fmt::Debug for Field<'a, T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Field")
             .field("name", &self.name)
@@ -142,10 +139,9 @@ impl<T> fmt::Debug for Field<T> {
 }
 
 /// Reads payload data from part, then puts them to anywhere
-impl<T, O, E> AsyncRead for Field<T>
+impl<'a, T, E> AsyncRead for Field<'a, T>
 where
-    T: Stream<Item = Result<O, E>> + Unpin + Send + 'static,
-    O: Into<Bytes>,
+    T: Stream<Item = Result<Bytes, E>> + Unpin + Send + 'static,
     E: Into<Error>,
 {
     fn poll_read(
@@ -163,26 +159,21 @@ where
 }
 
 /// Reads payload data from part, then yields them
-impl<T, O, E> Stream for Field<T>
+impl<'a, T, E> Stream for Field<'a, T>
 where
-    T: Stream<Item = Result<O, E>> + Unpin + Send + 'static,
-    O: Into<Bytes>,
+    T: Stream<Item = Result<Bytes, E>> + Unpin,
     E: Into<Error>,
 {
     type Item = Result<Bytes>;
 
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
-        log::debug!(
-            "polling {} {}",
-            self.index.unwrap_or_default(),
-            self.state.is_some()
-        );
+        tracing::trace!("polling {} {}", self.index, self.state.is_some());
 
-        if self.state.is_none() {
-            return Poll::Ready(None);
-        }
+        let state = match self.state.clone() {
+            None => return Poll::Ready(None),
+            Some(state) => state,
+        };
 
-        let state = self.state.clone().unwrap();
         let mut state = state.try_lock().map_err(|e| anyhow!(e.to_string()))?;
 
         match Pin::new(&mut *state).poll_next(cx)? {
@@ -192,15 +183,14 @@ where
                     if let Some(waker) = state.waker_mut().take() {
                         waker.wake();
                     }
-                    log::debug!("polled {}", self.index.unwrap_or_default());
+                    tracing::trace!("polled {}", self.index);
                     drop(self.state.take());
                     Poll::Ready(None)
                 }
                 Some(buf) => {
                     // @TODO: need check field payload data length
                     self.length += buf.len() as u64;
-                    log::debug!("polled bytes {}/{}", buf.len(), self.length);
-                    // Poll::Ready(Some(Ok(state.buffer_mut().split_to(len).freeze())))
+                    tracing::trace!("polled bytes {}/{}", buf.len(), self.length);
                     Poll::Ready(Some(Ok(buf)))
                 }
             },

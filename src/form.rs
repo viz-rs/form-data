@@ -14,22 +14,25 @@ use crate::{
     Field, State,
 };
 
-pub struct FormData<T> {
-    state: Arc<Mutex<State<T>>>,
+/// FormData
+pub struct FormData<'a, T> {
+    state: Arc<Mutex<State<'a, T>>>,
 }
 
-impl<T> FormData<T> {
-    pub fn new<B: AsRef<[u8]>>(b: B, t: T) -> Self {
-        // @TODO: check boundary max size
+impl<'a, T> FormData<'a, T> {
+    /// Creates new FormData with boundary and stream.
+    pub fn new(boundary: &'a str, t: T) -> Self {
         Self {
-            state: Arc::new(Mutex::new(State::new(b, t))),
+            state: Arc::new(Mutex::new(State::new(boundary.as_bytes(), t))),
         }
     }
 
-    pub fn state(&self) -> Arc<Mutex<State<T>>> {
+    /// Gets the state.
+    pub fn state(&self) -> Arc<Mutex<State<'a, T>>> {
         self.state.clone()
     }
 
+    /// Sets Buffer max size for reading.
     pub fn set_max_buf_size(&mut self, max: usize) -> Result<()> {
         self.state
             .try_lock()
@@ -40,17 +43,15 @@ impl<T> FormData<T> {
 }
 
 /// Reads form-data from request payload body, then yields `Field`
-impl<T, O, E> Stream for FormData<T>
+impl<'a, T, E> Stream for FormData<'a, T>
 where
-    T: Stream<Item = Result<O, E>> + Unpin + Send + 'static,
-    O: Into<Bytes>,
+    T: Stream<Item = Result<Bytes, E>> + Unpin,
     E: Into<Error>,
 {
-    type Item = Result<Field<T>>;
+    type Item = Result<Field<'a, T>>;
 
     fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
-        let state = self.state();
-        let mut state = state.try_lock().map_err(|e| anyhow!(e.to_string()))?;
+        let mut state = self.state.try_lock().map_err(|e| anyhow!(e.to_string()))?;
 
         if state.waker().is_some() {
             return Poll::Pending;
@@ -60,13 +61,15 @@ where
             Poll::Pending => Poll::Pending,
             Poll::Ready(res) => match res {
                 None => {
-                    state.buffer_drop();
+                    tracing::trace!("parse eof");
                     return Poll::Ready(None);
                 }
                 Some(buf) => {
-                    let mut headers = parse_part_headers(&buf)?;
+                    tracing::trace!("parse part");
 
-                    log::debug!("parse headers {:#?}", &buf);
+                    dbg!(&buf);
+                    let mut headers = parse_part_headers(&buf)?;
+                    dbg!(&headers);
 
                     let names = headers.remove(CONTENT_DISPOSITION).map_or_else(
                         || Err(anyhow!("invalid content disposition")),
@@ -78,9 +81,9 @@ where
 
                     field.name = names.0;
                     field.filename = names.1;
+                    field.index = state.index();
                     field.content_type = parse_content_type(headers.remove(CONTENT_TYPE).as_ref());
-                    field.index.replace(state.incr_index());
-                    field.state_mut().replace(self.state.clone());
+                    field.state_mut().replace(self.state());
 
                     if headers.len() > 0 {
                         field.headers_mut().replace(headers);

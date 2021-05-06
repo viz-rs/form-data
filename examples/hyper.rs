@@ -67,8 +67,6 @@ async fn hello(size: usize, req: Request<Body>) -> Result<Response<Body>> {
     // form.set_max_buf_size(8 * 1024)?;
 
     while let Some(mut field) = form.try_next().await? {
-        log::info!("{:?}", field);
-
         let name = field.name.to_owned();
         let mut bytes: u64 = 0;
 
@@ -81,7 +79,7 @@ async fn hello(size: usize, req: Request<Body>) -> Result<Response<Body>> {
                 Some("txt") => {
                     // buffer <= 8KB
                     let mut writer = File::create(&filepath).await?;
-                    bytes = copy(field, &mut writer).await?;
+                    bytes = copy(&mut field, &mut writer).await?;
                     writer.close().await?;
                 }
                 Some("iso") => {
@@ -97,14 +95,16 @@ async fn hello(size: usize, req: Request<Body>) -> Result<Response<Body>> {
                 }
             }
 
-            log::info!("file {} {}", name, bytes);
+            tracing::info!("file {} {}", name, bytes);
             txt.push_str(&format!("file {} {}\r\n", name, bytes));
         } else {
             let buffer = field.bytes().await?;
             bytes = buffer.len() as u64;
-            log::info!("text {} {}", name, bytes);
+            tracing::info!("text {} {}", name, bytes);
             txt.push_str(&format!("text {} {}\r\n", name, bytes));
         }
+
+        tracing::info!("{:?}", field);
 
         assert_eq!(
             bytes,
@@ -130,7 +130,11 @@ async fn hello(size: usize, req: Request<Body>) -> Result<Response<Body>> {
 
 #[tokio::main]
 pub async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    pretty_env_logger::init();
+    tracing_subscriber::fmt()
+        // From env var: `RUST_LOG`
+        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
+        .try_init()
+        .map_err(|e| anyhow::anyhow!(e))?;
 
     let mut arg = env::args()
         .find(|a| a.starts_with("--size="))

@@ -10,15 +10,12 @@ const FORM_DATA: &[u8; 9] = b"form-data";
 pub(crate) const CR: u8 = b'\r';
 pub(crate) const LF: u8 = b'\n';
 pub(crate) const DASH: u8 = b'-';
-pub(crate) const CRLF: &[u8; 2] = &[CR, LF]; // `\r\n`
-pub(crate) const CRLFCRLF: &[u8; 4] = &[CR, LF, CR, LF]; // `\r\n\r\n`
-pub(crate) const CRLF_DASH_DASH: &[u8; 4] = &[CR, LF, DASH, DASH]; // `\r\n--`
-                                                                   // https://github.com/rust-lang/rust/blob/master/src/libstd/sys_common/io.rs#L1
+pub(crate) const DASHES: [u8; 2] = [DASH, DASH]; // `--`
+pub(crate) const CRLF: [u8; 2] = [CR, LF]; // `\r\n`
+pub(crate) const CRLFS: [u8; 4] = [CR, LF, CR, LF]; // `\r\n\r\n`
+pub(crate) const CRLF_DASHES: [u8; 4] = [CR, LF, DASH, DASH]; // `\r\n--`
 pub(crate) const DEFAULT_BUF_SIZE: usize = 8 * 1024;
-
-pub(crate) fn read_until(b: &[u8], sub: &[u8]) -> Option<usize> {
-    twoway::find_bytes(b, sub)
-}
+pub(crate) const MAX_HEADERS: usize = 8 * 2;
 
 pub(crate) fn parse_content_type(header: Option<&http::HeaderValue>) -> Option<mime::Mime> {
     header
@@ -27,7 +24,7 @@ pub(crate) fn parse_content_type(header: Option<&http::HeaderValue>) -> Option<m
 }
 
 pub(crate) fn parse_part_headers(bytes: &[u8]) -> Result<HeaderMap> {
-    let mut headers = [EMPTY_HEADER; crate::MAX_HEADERS];
+    let mut headers = [EMPTY_HEADER; MAX_HEADERS];
     match parse_headers(&bytes, &mut headers) {
         Ok(Status::Complete((_, hs))) => {
             let len = hs.len();
