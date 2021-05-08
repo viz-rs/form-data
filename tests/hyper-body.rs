@@ -29,7 +29,7 @@ async fn hyper_body() -> Result<()> {
         assert!(!field.consumed());
         assert_eq!(field.length, 0);
 
-        match dbg!(field.index) {
+        match field.index {
             0 => {
                 assert_eq!(field.name, "operations");
                 assert_eq!(field.filename, None);

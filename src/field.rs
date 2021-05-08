@@ -141,7 +141,7 @@ impl<T> fmt::Debug for Field<T> {
 /// Reads payload data from part, then puts them to anywhere
 impl<T, E> AsyncRead for Field<T>
 where
-    T: Stream<Item = Result<Bytes, E>> + Unpin + Send + 'static,
+    T: Stream<Item = Result<Bytes, E>> + Unpin,
     E: Into<Error>,
 {
     fn poll_read(
@@ -188,7 +188,6 @@ where
                     Poll::Ready(None)
                 }
                 Some(buf) => {
-                    dbg!(&buf);
                     // @TODO: need check field payload data length
                     self.length += buf.len() as u64;
                     tracing::trace!("polled bytes {}/{}", buf.len(), self.length);

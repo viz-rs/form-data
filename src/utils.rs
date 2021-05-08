@@ -3,19 +3,15 @@ use anyhow::{anyhow, Result};
 use http::header::{HeaderMap, HeaderName, HeaderValue};
 use httparse::{parse_headers, Status, EMPTY_HEADER};
 
+pub(crate) const MAX_HEADERS: usize = 8 * 2;
+pub(crate) const DEFAULT_BUF_SIZE: usize = 8 * 1024;
+pub(crate) const DASHES: [u8; 2] = [b'-', b'-']; // `--`
+pub(crate) const CRLF: [u8; 2] = [b'\r', b'\n']; // `\r\n`
+pub(crate) const CRLFS: [u8; 4] = [b'\r', b'\n', b'\r', b'\n']; // `\r\n\r\n`
+
 const NAME: &[u8; 4] = b"name";
 const FILE_NAME: &[u8; 8] = b"filename";
 const FORM_DATA: &[u8; 9] = b"form-data";
-
-pub(crate) const CR: u8 = b'\r';
-pub(crate) const LF: u8 = b'\n';
-pub(crate) const DASH: u8 = b'-';
-pub(crate) const DASHES: [u8; 2] = [DASH, DASH]; // `--`
-pub(crate) const CRLF: [u8; 2] = [CR, LF]; // `\r\n`
-pub(crate) const CRLFS: [u8; 4] = [CR, LF, CR, LF]; // `\r\n\r\n`
-pub(crate) const CRLF_DASHES: [u8; 4] = [CR, LF, DASH, DASH]; // `\r\n--`
-pub(crate) const DEFAULT_BUF_SIZE: usize = 8 * 1024;
-pub(crate) const MAX_HEADERS: usize = 8 * 2;
 
 pub(crate) fn parse_content_type(header: Option<&http::HeaderValue>) -> Option<mime::Mime> {
     header

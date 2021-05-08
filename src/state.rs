@@ -1,7 +1,6 @@
 use std::{
     fmt,
     pin::Pin,
-    process,
     task::{Context, Poll, Waker},
 };
 
@@ -11,10 +10,10 @@ use futures_util::stream::Stream;
 use memchr::memmem;
 use tracing::trace;
 
-use crate::utils::{CR, CRLF, CRLFS, CRLF_DASHES, DASH, DASHES, DEFAULT_BUF_SIZE, LF};
+use crate::utils::{CRLF, CRLFS, DASHES, DEFAULT_BUF_SIZE};
 
 #[derive(Debug, PartialEq)]
-pub enum Flag {
+enum Flag {
     Delimiting(bool),
     Heading(usize),
     Headed,
@@ -25,8 +24,8 @@ pub enum Flag {
 /// IO State
 pub struct State<T> {
     io: T,
-    f: Flag,
     eof: bool,
+    flag: Flag,
     length: u64,
     total: usize,
     buffer: BytesMut,
@@ -51,14 +50,17 @@ impl<T> State<T> {
 
         Self {
             io,
-            buffer,
             total: 0,
             length: 0,
-            eof: false,
+
             waker: None,
+            eof: false,
             is_readable: false,
-            f: Flag::Delimiting(false),
+
+            buffer,
+            flag: Flag::Delimiting(false),
             delimiter: delimiter.freeze(),
+
             max_buf_size: DEFAULT_BUF_SIZE,
         }
     }
@@ -117,97 +119,91 @@ impl<T> State<T> {
 
     /// Gets the boundary.
     pub fn boundary(&self) -> &[u8] {
-        &self.delimiter[2..]
-    }
-
-    fn decode_eof(&mut self) -> Result<Option<Bytes>> {
-        Ok(Some(Bytes::new()))
+        &self.delimiter[4..]
     }
 
     fn decode(&mut self) -> Result<Option<Bytes>> {
-        // `\r\n--boundary\r\n` or // `\r\n--boundary--`
-        // let min_size = 2 + 2 + self.boundary.len() + 2;
-        // let max_buf_size = self.max_buf_size;
-        dbg!(self.total, &self.f, &self.buffer);
-        match self.f {
-            Flag::Delimiting(boding) => {
-                let mut heading = false;
-                if let Some(n) = memmem::find(&self.buffer, &self.delimiter) {
-                    heading = true;
-                    self.f = Flag::Heading(n);
-                }
-
-                if !heading {
-                    // Empty Request Body
-                    if self.eof && self.buffer.len() == 2 && self.buffer[..2] == CRLF {
-                        self.buffer.advance(2);
-                        self.f = Flag::Eof;
-                    }
-
-                    // Empty Part Body
-                    if let Some(n) = memmem::find(&self.buffer, &self.delimiter[2..]) {
-                        self.f = Flag::Next;
-                        self.buffer.advance(self.delimiter.len() - 2);
-                        dbg!(2333);
-                        return Ok(None);
-                    }
-                }
-
-                dbg!("{} {:?}", self.eof, &self.f);
+        if let Flag::Delimiting(boding) = self.flag {
+            let mut heading = false;
+            if let Some(n) = memmem::find(&self.buffer, &self.delimiter) {
+                heading = true;
+                self.flag = Flag::Heading(n);
             }
-            Flag::Heading(ref mut n) => {
-                // first part
-                if self.total == 0 {
-                    if *n > 0 {
-                        // consume data
-                        self.buffer.advance(*n);
+
+            if !heading {
+                // Empty Request Body
+                if self.eof && self.buffer.len() == 2 && self.buffer[..2] == CRLF {
+                    self.buffer.advance(2);
+                    self.flag = Flag::Eof;
+                }
+
+                // Empty Part Body
+                if memmem::find(&self.buffer, &self.delimiter[2..]).is_some() {
+                    self.flag = Flag::Next;
+                    self.buffer.advance(self.delimiter.len() - 2);
+                    return Ok(None);
+                }
+
+                // Reading Part Body
+                if boding {
+                    // Returns buffer with `max_buf_size`
+                    if self.max_buf_size + self.delimiter.len() < self.buffer.len() {
+                        return Ok(Some(self.buffer.split_to(self.max_buf_size).freeze()));
                     }
+                }
+            }
+        }
+
+        if let Flag::Heading(ref mut n) = self.flag {
+            // first part
+            if self.total == 0 {
+                if *n > 0 {
+                    // consume data
+                    self.buffer.advance(*n);
+                }
+                self.buffer.advance(self.delimiter.len());
+                self.flag = Flag::Headed;
+            } else {
+                // prev part is ended
+                if *n == 0 {
+                    // field'stream need to stop
+                    self.flag = Flag::Next;
                     self.buffer.advance(self.delimiter.len());
-                    self.f = Flag::Headed;
+                    return Ok(None);
                 } else {
-                    // prev part is ended
-                    if *n == 0 {
-                        self.f = Flag::Next;
-                        self.buffer.advance(self.delimiter.len());
-                        dbg!(2333);
-                        return Ok(None);
-                    } else {
-                        // prev part last data
-                        let buf = self.buffer.split_to(*n).freeze();
-                        *n = 0;
-                        return Ok(Some(buf));
-                    }
+                    // prev part last data
+                    let buf = self.buffer.split_to(*n).freeze();
+                    *n = 0;
+                    return Ok(Some(buf));
                 }
             }
-            Flag::Headed => {
-                dbg!(&self.buffer);
-                if self.buffer.len() > 1 {
-                    if dbg!(self.buffer[..2] == CRLF) {
-                        self.buffer.advance(2);
-                        self.f = Flag::Header;
-                    } else if self.buffer[..2] == DASHES {
-                        self.buffer.advance(2);
-                        self.f = Flag::Eof;
-                    } else {
-                        dbg!(&self.buffer);
-                        // We dont parse other format, like `\n`
-                        self.length -= (self.delimiter.len() - 2) as u64;
-                        self.f = Flag::Eof;
-                    }
+        }
+
+        if Flag::Next == self.flag {
+            self.flag = Flag::Headed;
+        }
+
+        if Flag::Headed == self.flag {
+            if self.buffer.len() > 1 {
+                if self.buffer[..2] == CRLF {
+                    self.buffer.advance(2);
+                    self.flag = Flag::Header;
+                } else if self.buffer[..2] == DASHES {
+                    self.buffer.advance(2);
+                    self.flag = Flag::Eof;
+                } else {
+                    // We dont parse other format, like `\n`
+                    self.length -= (self.delimiter.len() - 2) as u64;
+                    self.flag = Flag::Eof;
                 }
             }
-            Flag::Header => {
-                dbg!(233, &self.buffer);
-                if let Some(n) = memmem::find(&self.buffer, &CRLFS) {
-                    self.f = Flag::Delimiting(true);
-                    return Ok(Some(dbg!(self.buffer.split_to(n + CRLFS.len()).freeze())));
-                }
+        }
+
+        if Flag::Header == self.flag {
+            if let Some(n) = memmem::find(&self.buffer, &CRLFS) {
+                self.flag = Flag::Delimiting(true);
+                return Ok(Some(self.buffer.split_to(n + CRLFS.len()).freeze()));
             }
-            Flag::Next => {
-                self.f = Flag::Headed;
-            }
-            Flag::Eof => {}
-            _ => {}
         }
 
         Ok(None)
@@ -218,6 +214,7 @@ impl<T> fmt::Debug for State<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("State")
             .field("eof", &self.eof)
+            .field("flag", &self.flag)
             .field("total", &self.total)
             .field("length", &self.length)
             .field("is_readable", &self.is_readable)
@@ -231,30 +228,11 @@ where
     T: Stream<Item = Result<Bytes, E>> + Unpin,
     E: Into<Error>,
 {
-    // 0 is EOF!
-    // First: if found a boundary then returns size of headers to `Form`
-    // Second: returns of payload data to `Field`
-    // Find `--boundary` ->
-    // Find part headers -> return headers buffer -> return Field
-    // Find part payload -> return payload buffer -> return to Field Stream
-    // Find part headers -> if with prev Field -> return None to prev Field Stream, Field Stream EOF
-    // Find part headers -> if with `--` stuffix -> return None to FormData Stream EOF
     type Item = Result<Bytes>;
 
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         loop {
             if self.is_readable {
-                /*
-                if self.eof {
-                    // decode_eof
-                    let data = self.decode_eof()?;
-                    if data.is_none() {
-                        self.is_readable = false;
-                    }
-                    return Poll::Ready(data.map(Ok));
-                }
-                */
-
                 // part
                 trace!("attempting to decode a part");
 
@@ -263,11 +241,13 @@ where
                     return Poll::Ready(Some(Ok(data)));
                 }
 
-                if dbg!(Flag::Next == self.f) {
+                // field stream is ended
+                if Flag::Next == self.flag {
                     return Poll::Ready(None);
                 }
 
-                if dbg!(Flag::Eof == self.f) {
+                // whole stream is ended
+                if Flag::Eof == self.flag {
                     if self.buffer.len() > 0 {
                         self.length -= self.buffer.len() as u64;
                         self.buffer.clear();
@@ -304,8 +284,6 @@ where
 
             if bytect == 0 {
                 self.eof = true;
-                // } else {
-                //     self.eof = false;
             }
 
             self.is_readable = true;

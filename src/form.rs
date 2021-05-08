@@ -67,9 +67,7 @@ where
                 Some(buf) => {
                     tracing::trace!("parse part");
 
-                    dbg!(&buf.len());
                     let mut headers = parse_part_headers(&buf)?;
-                    dbg!(&headers);
 
                     let names = headers.remove(CONTENT_DISPOSITION).map_or_else(
                         || Err(anyhow!("invalid content disposition")),

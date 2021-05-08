@@ -61,10 +61,7 @@ async fn hello(size: usize, req: Request<Body>) -> Result<Response<Body>> {
     );
 
     // 512KB for hyper lager buffer
-    form.set_max_buf_size(size * 1024)?;
-    // form.set_max_buf_size(512 * 1024)?;
-    // form.set_max_buf_size(8 * 2 * 1024)?;
-    // form.set_max_buf_size(8 * 1024)?;
+    form.set_max_buf_size(size)?;
 
     while let Some(mut field) = form.try_next().await? {
         let name = field.name.to_owned();
@@ -139,7 +136,11 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let mut arg = env::args()
         .find(|a| a.starts_with("--size="))
         .unwrap_or_else(|| "--size=8".to_string());
-    let size = arg.split_off(7).parse::<usize>().unwrap_or_else(|_| 8);
+
+    // 512
+    // 8 * 2
+    // 8
+    let size = arg.split_off(7).parse::<usize>().unwrap_or_else(|_| 8) * 1024;
 
     // For every connection, we must make a `Service` to handle all
     // incoming HTTP requests on said connection.
@@ -152,10 +153,10 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     let addr = ([127, 0, 0, 1], 3000).into();
 
-    let server = Server::bind(&addr).serve(make_svc);
+    let server = Server::bind(&addr).http1_max_buf_size(size).serve(make_svc);
 
     println!("Listening on http://{}", addr);
-    println!("FormData max buffer size is {}KB", size);
+    println!("FormData max buffer size is {}KB", size / 1024);
 
     server.await?;
 
