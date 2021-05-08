@@ -15,20 +15,20 @@ use crate::{
 };
 
 /// FormData
-pub struct FormData<'a, T> {
-    state: Arc<Mutex<State<'a, T>>>,
+pub struct FormData<T> {
+    state: Arc<Mutex<State<T>>>,
 }
 
-impl<'a, T> FormData<'a, T> {
+impl<T> FormData<T> {
     /// Creates new FormData with boundary and stream.
-    pub fn new(boundary: &'a str, t: T) -> Self {
+    pub fn new(boundary: &str, t: T) -> Self {
         Self {
             state: Arc::new(Mutex::new(State::new(boundary.as_bytes(), t))),
         }
     }
 
     /// Gets the state.
-    pub fn state(&self) -> Arc<Mutex<State<'a, T>>> {
+    pub fn state(&self) -> Arc<Mutex<State<T>>> {
         self.state.clone()
     }
 
@@ -43,12 +43,12 @@ impl<'a, T> FormData<'a, T> {
 }
 
 /// Reads form-data from request payload body, then yields `Field`
-impl<'a, T, E> Stream for FormData<'a, T>
+impl<T, E> Stream for FormData<T>
 where
     T: Stream<Item = Result<Bytes, E>> + Unpin,
     E: Into<Error>,
 {
-    type Item = Result<Field<'a, T>>;
+    type Item = Result<Field<T>>;
 
     fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         let mut state = self.state.try_lock().map_err(|e| anyhow!(e.to_string()))?;
@@ -67,7 +67,7 @@ where
                 Some(buf) => {
                     tracing::trace!("parse part");
 
-                    dbg!(&buf);
+                    dbg!(&buf.len());
                     let mut headers = parse_part_headers(&buf)?;
                     dbg!(&headers);
 

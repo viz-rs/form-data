@@ -1,6 +1,7 @@
 use std::{
     fmt,
     pin::Pin,
+    process,
     task::{Context, Poll, Waker},
 };
 
@@ -12,32 +13,52 @@ use tracing::trace;
 
 use crate::utils::{CR, CRLF, CRLFS, CRLF_DASHES, DASH, DASHES, DEFAULT_BUF_SIZE, LF};
 
+#[derive(Debug, PartialEq)]
+pub enum Flag {
+    Delimiting(bool),
+    Heading(usize),
+    Headed,
+    Header,
+    Next,
+    Eof,
+}
 /// IO State
-pub struct State<'a, T> {
+pub struct State<T> {
     io: T,
+    f: Flag,
     eof: bool,
     length: u64,
     total: usize,
     buffer: BytesMut,
+    delimiter: Bytes,
     is_readable: bool,
-    boundary: &'a [u8],
-    waker: Option<Waker>,
     max_buf_size: usize,
+    waker: Option<Waker>,
 }
 
-impl<'a, T> State<'a, T> {
+impl<T> State<T> {
     /// Creates new State.
-    pub fn new(boundary: &'a [u8], io: T) -> Self {
+    pub fn new(boundary: &[u8], io: T) -> Self {
+        // `\r\n--boundary`
+        let mut delimiter = BytesMut::with_capacity(4 + boundary.len());
+        delimiter.extend_from_slice(&CRLF);
+        delimiter.extend_from_slice(&DASHES);
+        delimiter.extend_from_slice(&boundary);
+
+        // `\r\n`
+        let mut buffer = BytesMut::with_capacity(DEFAULT_BUF_SIZE);
+        buffer.extend_from_slice(&CRLF);
+
         Self {
             io,
-            boundary,
+            buffer,
             total: 0,
             length: 0,
             eof: false,
             waker: None,
-            // placeholder `\r\n` , let first boundary is `\r\n--boundary`
-            buffer: BytesMut::from(&CRLF[..]),
             is_readable: false,
+            f: Flag::Delimiting(false),
+            delimiter: delimiter.freeze(),
             max_buf_size: DEFAULT_BUF_SIZE,
         }
     }
@@ -94,9 +115,9 @@ impl<'a, T> State<'a, T> {
         self.total
     }
 
-    /// `boundary`
-    fn boundary(&self) -> &[u8] {
-        &self.boundary
+    /// Gets the boundary.
+    pub fn boundary(&self) -> &[u8] {
+        &self.delimiter[2..]
     }
 
     fn decode_eof(&mut self) -> Result<Option<Bytes>> {
@@ -105,26 +126,107 @@ impl<'a, T> State<'a, T> {
 
     fn decode(&mut self) -> Result<Option<Bytes>> {
         // `\r\n--boundary\r\n` or // `\r\n--boundary--`
-        let min_size = 2 + 2 + self.boundary.len() + 2;
-        let max_buf_size = self.max_buf_size;
+        // let min_size = 2 + 2 + self.boundary.len() + 2;
+        // let max_buf_size = self.max_buf_size;
+        dbg!(self.total, &self.f, &self.buffer);
+        match self.f {
+            Flag::Delimiting(boding) => {
+                let mut heading = false;
+                if let Some(n) = memmem::find(&self.buffer, &self.delimiter) {
+                    heading = true;
+                    self.f = Flag::Heading(n);
+                }
 
-        Ok(Some(Bytes::new()))
+                if !heading {
+                    // Empty Request Body
+                    if self.eof && self.buffer.len() == 2 && self.buffer[..2] == CRLF {
+                        self.buffer.advance(2);
+                        self.f = Flag::Eof;
+                    }
+
+                    // Empty Part Body
+                    if let Some(n) = memmem::find(&self.buffer, &self.delimiter[2..]) {
+                        self.f = Flag::Next;
+                        self.buffer.advance(self.delimiter.len() - 2);
+                        dbg!(2333);
+                        return Ok(None);
+                    }
+                }
+
+                dbg!("{} {:?}", self.eof, &self.f);
+            }
+            Flag::Heading(ref mut n) => {
+                // first part
+                if self.total == 0 {
+                    if *n > 0 {
+                        // consume data
+                        self.buffer.advance(*n);
+                    }
+                    self.buffer.advance(self.delimiter.len());
+                    self.f = Flag::Headed;
+                } else {
+                    // prev part is ended
+                    if *n == 0 {
+                        self.f = Flag::Next;
+                        self.buffer.advance(self.delimiter.len());
+                        dbg!(2333);
+                        return Ok(None);
+                    } else {
+                        // prev part last data
+                        let buf = self.buffer.split_to(*n).freeze();
+                        *n = 0;
+                        return Ok(Some(buf));
+                    }
+                }
+            }
+            Flag::Headed => {
+                dbg!(&self.buffer);
+                if self.buffer.len() > 1 {
+                    if dbg!(self.buffer[..2] == CRLF) {
+                        self.buffer.advance(2);
+                        self.f = Flag::Header;
+                    } else if self.buffer[..2] == DASHES {
+                        self.buffer.advance(2);
+                        self.f = Flag::Eof;
+                    } else {
+                        dbg!(&self.buffer);
+                        // We dont parse other format, like `\n`
+                        self.length -= (self.delimiter.len() - 2) as u64;
+                        self.f = Flag::Eof;
+                    }
+                }
+            }
+            Flag::Header => {
+                dbg!(233, &self.buffer);
+                if let Some(n) = memmem::find(&self.buffer, &CRLFS) {
+                    self.f = Flag::Delimiting(true);
+                    return Ok(Some(dbg!(self.buffer.split_to(n + CRLFS.len()).freeze())));
+                }
+            }
+            Flag::Next => {
+                self.f = Flag::Headed;
+            }
+            Flag::Eof => {}
+            _ => {}
+        }
+
+        Ok(None)
     }
 }
 
-impl<'a, T> fmt::Debug for State<'a, T> {
+impl<T> fmt::Debug for State<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("State")
-            .field("boundary", &String::from_utf8_lossy(self.boundary()))
-            .field("length", &self.length)
-            .field("total", &self.total)
             .field("eof", &self.eof)
+            .field("total", &self.total)
+            .field("length", &self.length)
             .field("is_readable", &self.is_readable)
+            .field("boundary", &String::from_utf8_lossy(self.boundary()))
             .finish()
     }
 }
 
-impl<'a, T, E> Stream for State<'a, T>
+impl<T, E> Stream for State<T>
 where
     T: Stream<Item = Result<Bytes, E>> + Unpin,
     E: Into<Error>,
@@ -142,6 +244,7 @@ where
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         loop {
             if self.is_readable {
+                /*
                 if self.eof {
                     // decode_eof
                     let data = self.decode_eof()?;
@@ -150,6 +253,7 @@ where
                     }
                     return Poll::Ready(data.map(Ok));
                 }
+                */
 
                 // part
                 trace!("attempting to decode a part");
@@ -159,10 +263,28 @@ where
                     return Poll::Ready(Some(Ok(data)));
                 }
 
+                if dbg!(Flag::Next == self.f) {
+                    return Poll::Ready(None);
+                }
+
+                if dbg!(Flag::Eof == self.f) {
+                    if self.buffer.len() > 0 {
+                        self.length -= self.buffer.len() as u64;
+                        self.buffer.clear();
+                    }
+                    self.eof = true;
+                    return Poll::Ready(None);
+                }
+
                 self.is_readable = false;
             }
 
             trace!("polling data from stream");
+
+            if self.eof {
+                self.is_readable = true;
+                continue;
+            }
 
             self.buffer.reserve(1);
             let bytect = match Pin::new(self.io_mut()).poll_next(cx) {
@@ -181,13 +303,9 @@ where
             };
 
             if bytect == 0 {
-                if self.eof {
-                    return Poll::Ready(None);
-                }
-
                 self.eof = true;
-            } else {
-                self.eof = false;
+                // } else {
+                //     self.eof = false;
             }
 
             self.is_readable = true;

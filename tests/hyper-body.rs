@@ -29,7 +29,7 @@ async fn hyper_body() -> Result<()> {
         assert!(!field.consumed());
         assert_eq!(field.length, 0);
 
-        match field.index {
+        match dbg!(field.index) {
             0 => {
                 assert_eq!(field.name, "operations");
                 assert_eq!(field.filename, None);
@@ -136,7 +136,6 @@ async fn hyper_body() -> Result<()> {
 #[tokio::test]
 async fn stream_iter() -> Result<()> {
     let chunks: Vec<Result<_, std::io::Error>> = vec![
-        Ok(""),
         Ok("--00252461d3ab8ff5"),
         Ok("c25834e0bffd6f70"),
         Ok("\r\n"),

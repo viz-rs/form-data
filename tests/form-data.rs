@@ -328,7 +328,7 @@ async fn sample() -> Result<()> {
 
     assert_eq!(state.eof(), true);
     assert_eq!(state.total(), 5);
-    assert_eq!(state.len(), 1047);
+    assert_eq!(state.len(), 1043);
 
     Ok(())
 }
@@ -359,7 +359,7 @@ async fn sample_lf() -> Result<()> {
 
     assert_eq!(state.eof(), true);
     assert_eq!(state.total(), 0);
-    assert_eq!(state.len(), 1008);
+    assert_eq!(state.len(), 0);
 
     Ok(())
 }

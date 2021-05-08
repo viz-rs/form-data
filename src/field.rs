@@ -17,7 +17,7 @@ use futures_util::{
 use crate::State;
 
 /// Field
-pub struct Field<'a, T> {
+pub struct Field<T> {
     /// The payload size of Field.
     pub length: u64,
     /// The index of Field.
@@ -30,10 +30,10 @@ pub struct Field<'a, T> {
     pub content_type: Option<mime::Mime>,
     /// The extras headers of Field, optinal.
     pub headers: Option<http::HeaderMap>,
-    state: Option<Arc<Mutex<State<'a, T>>>>,
+    state: Option<Arc<Mutex<State<T>>>>,
 }
 
-impl<'a, T> Field<'a, T> {
+impl<T> Field<T> {
     /// Creates an empty field.
     pub fn empty() -> Self {
         Self {
@@ -53,7 +53,7 @@ impl<'a, T> Field<'a, T> {
     }
 
     /// Gets mutable state.
-    pub fn state_mut(&mut self) -> &mut Option<Arc<Mutex<State<'a, T>>>> {
+    pub fn state_mut(&mut self) -> &mut Option<Arc<Mutex<State<T>>>> {
         &mut self.state
     }
 
@@ -124,7 +124,7 @@ impl<'a, T> Field<'a, T> {
     }
 }
 
-impl<'a, T> fmt::Debug for Field<'a, T> {
+impl<T> fmt::Debug for Field<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Field")
             .field("name", &self.name)
@@ -139,7 +139,7 @@ impl<'a, T> fmt::Debug for Field<'a, T> {
 }
 
 /// Reads payload data from part, then puts them to anywhere
-impl<'a, T, E> AsyncRead for Field<'a, T>
+impl<T, E> AsyncRead for Field<T>
 where
     T: Stream<Item = Result<Bytes, E>> + Unpin + Send + 'static,
     E: Into<Error>,
@@ -159,7 +159,7 @@ where
 }
 
 /// Reads payload data from part, then yields them
-impl<'a, T, E> Stream for Field<'a, T>
+impl<T, E> Stream for Field<T>
 where
     T: Stream<Item = Result<Bytes, E>> + Unpin,
     E: Into<Error>,
@@ -188,6 +188,7 @@ where
                     Poll::Ready(None)
                 }
                 Some(buf) => {
+                    dbg!(&buf);
                     // @TODO: need check field payload data length
                     self.length += buf.len() as u64;
                     tracing::trace!("polled bytes {}/{}", buf.len(), self.length);
