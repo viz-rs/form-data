@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 /// Various limits on incoming data
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Limits {
     /// Max field name size
     pub field_name_size: Option<usize>,
@@ -24,24 +24,32 @@ pub struct Limits {
 impl Default for Limits {
     fn default() -> Self {
         Self {
-            // 100
-            field_name_size: Some(100),
-            // 100kb
-            field_size: Some(100 * 1024),
+            field_name_size: Some(Self::DEFAULT_FIELD_NAME_SIZE),
+            field_size: Some(Self::DEFAULT_FIELD_SIZE),
             fields: None,
-            // 10mb
-            file_size: Some(10 * 1024 * 1024),
+            file_size: Some(Self::DEFAULT_FILE_SIZE),
             files: None,
             parts: None,
-            // 200mb
-            stream_size: Some(200 * 1024 * 1024),
+            stream_size: Some(Self::DEFAULT_STREAM_SIZE),
             buffer_size: Self::DEFAULT_BUFFER_SIZE,
         }
     }
 }
 
 impl Limits {
-    /// Max number of buffer size
+    /// Max number of field name size, defaults to 100.
+    pub const DEFAULT_FIELD_NAME_SIZE: usize = 100;
+
+    /// Max number of field value size, defaults to 100KB.
+    pub const DEFAULT_FIELD_SIZE: usize = 100 * 1024;
+
+    /// Max number of file size, defaults to 10MB.
+    pub const DEFAULT_FILE_SIZE: usize = 10 * 1024 * 1024;
+
+    /// Max number of stream size, defaults to 200MB.
+    pub const DEFAULT_STREAM_SIZE: u64 = 200 * 1024 * 1024;
+
+    /// Max number of buffer size, defaults to 8KB
     pub const DEFAULT_BUFFER_SIZE: usize = 8 * 1024;
 
     /// Max field name size
