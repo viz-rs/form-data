@@ -124,17 +124,14 @@ impl<T> State<T> {
 
     fn decode(&mut self) -> Result<Option<Bytes>> {
         if let Flag::Delimiting(boding) = self.flag {
-            let mut heading = false;
             if let Some(n) = memmem::find(&self.buffer, &self.delimiter) {
-                heading = true;
                 self.flag = Flag::Heading(n);
-            }
-
-            if !heading {
+            } else {
                 // Empty Request Body
                 if self.eof && self.buffer.len() == 2 && self.buffer[..2] == CRLF {
                     self.buffer.advance(2);
                     self.flag = Flag::Eof;
+                    return Ok(None);
                 }
 
                 // Empty Part Body
@@ -191,10 +188,12 @@ impl<T> State<T> {
                 } else if self.buffer[..2] == DASHES {
                     self.buffer.advance(2);
                     self.flag = Flag::Eof;
+                    return Ok(None);
                 } else {
                     // We dont parse other format, like `\n`
                     self.length -= (self.delimiter.len() - 2) as u64;
                     self.flag = Flag::Eof;
+                    return Ok(None);
                 }
             }
         }
@@ -236,6 +235,7 @@ where
                 // part
                 trace!("attempting to decode a part");
 
+                // field
                 if let Some(data) = self.decode()? {
                     trace!("part decoded from buffer");
                     return Poll::Ready(Some(Ok(data)));
@@ -248,10 +248,8 @@ where
 
                 // whole stream is ended
                 if Flag::Eof == self.flag {
-                    if self.buffer.len() > 0 {
-                        self.length -= self.buffer.len() as u64;
-                        self.buffer.clear();
-                    }
+                    self.length -= self.buffer.len() as u64;
+                    self.buffer.clear();
                     self.eof = true;
                     return Poll::Ready(None);
                 }
