@@ -14,12 +14,12 @@ use futures_util::{
     stream::{Stream, TryStreamExt},
 };
 
-use crate::State;
+use crate::{FormDataError, State};
 
 /// Field
 pub struct Field<T> {
     /// The payload size of Field.
-    pub length: u64,
+    pub length: usize,
     /// The index of Field.
     pub index: usize,
     /// The name of Field.
@@ -174,6 +174,7 @@ where
             Some(state) => state,
         };
 
+        let is_file = self.filename.is_some();
         let mut state = state.try_lock().map_err(|e| anyhow!(e.to_string()))?;
 
         match Pin::new(&mut *state).poll_next(cx)? {
@@ -188,8 +189,19 @@ where
                     Poll::Ready(None)
                 }
                 Some(buf) => {
-                    // @TODO: need check field payload data length
-                    self.length += buf.len() as u64;
+                    let l = buf.len();
+
+                    if is_file {
+                        if state.limits.checked_file_size(self.length + l) {
+                            return Poll::Ready(Some(Err(FormDataError::FileTooLarge.into())));
+                        }
+                    } else {
+                        if state.limits.checked_field_size(self.length + l) {
+                            return Poll::Ready(Some(Err(FormDataError::FileTooLarge.into())));
+                        }
+                    }
+
+                    self.length += l;
                     tracing::trace!("polled bytes {}/{}", buf.len(), self.length);
                     Poll::Ready(Some(Ok(buf)))
                 }

@@ -23,7 +23,7 @@ async fn hyper_body() -> Result<()> {
     let stream = Limited::random_with(payload, 256);
 
     let body = Body::wrap_stream(stream);
-    let mut form = FormData::new("------------------------627436eaefdbc285", body);
+    let mut form = FormData::new(body, "------------------------627436eaefdbc285");
 
     while let Some(mut field) = form.try_next().await? {
         assert!(!field.consumed());
@@ -42,7 +42,7 @@ async fn hyper_body() -> Result<()> {
                 }
 
                 assert_eq!(buffer, "[{ \"query\": \"mutation ($file: Upload!) { singleUpload(file: $file) { id } }\", \"variables\": { \"file\": null } }, { \"query\": \"mutation($files: [Upload!]!) { multipleUpload(files: $files) { id } }\", \"variables\": { \"files\": [null, null] } }]");
-                assert_eq!(field.length, buffer.len() as u64);
+                assert_eq!(field.length, buffer.len());
 
                 assert!(field.consumed());
 
@@ -57,7 +57,7 @@ async fn hyper_body() -> Result<()> {
                 let buffer = field.bytes().await?;
 
                 assert_eq!(buffer, "{ \"0\": [\"0.variables.file\"], \"1\": [\"1.variables.files.0\"], \"2\": [\"1.variables.files.1\"] }");
-                assert_eq!(field.length, buffer.len() as u64);
+                assert_eq!(field.length, buffer.len());
 
                 assert!(field.consumed());
 
@@ -100,8 +100,8 @@ async fn hyper_body() -> Result<()> {
                 let bytes = field.read_to_end(&mut buffer).await?;
 
                 assert_eq!(buffer, "Bravo file content.\r\n".as_bytes());
-                assert_eq!(field.length, bytes as u64);
-                assert_eq!(field.length, buffer.len() as u64);
+                assert_eq!(field.length, bytes);
+                assert_eq!(field.length, buffer.len());
 
                 tracing::info!("{:#?}", field);
             }
@@ -114,8 +114,8 @@ async fn hyper_body() -> Result<()> {
                 let bytes = field.read_to_string(&mut string).await?;
 
                 assert_eq!(string, "Charlie file content.\r\n");
-                assert_eq!(field.length, bytes as u64);
-                assert_eq!(field.length, string.len() as u64);
+                assert_eq!(field.length, bytes);
+                assert_eq!(field.length, string.len());
 
                 tracing::info!("{:#?}", field);
             }
@@ -155,7 +155,7 @@ async fn stream_iter() -> Result<()> {
         Ok("--"),
     ];
     let body = hyper::Body::wrap_stream(stream::iter(chunks));
-    let mut form = FormData::new("00252461d3ab8ff5c25834e0bffd6f70", body);
+    let mut form = FormData::new(body, "00252461d3ab8ff5c25834e0bffd6f70");
 
     while let Some(mut field) = form.try_next().await? {
         assert!(!field.consumed());
@@ -184,7 +184,7 @@ async fn stream_iter() -> Result<()> {
             _ => {}
         }
 
-        assert_eq!(field.length, buffer.len() as u64);
+        assert_eq!(field.length, buffer.len());
         assert!(field.consumed());
 
         tracing::info!("{:#?}", field);

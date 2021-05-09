@@ -16,7 +16,7 @@ use lib::Limited;
 async fn empty() -> Result<()> {
     let body = Limited::random(File::open("tests/fixtures/empty.txt").await?);
 
-    let mut form = FormData::new("", body);
+    let mut form = FormData::new(body, "");
 
     while let Some(mut field) = form.try_next().await? {
         let mut buffer = BytesMut::new();
@@ -40,7 +40,7 @@ async fn empty() -> Result<()> {
 async fn many() -> Result<()> {
     let body = Limited::random(File::open("tests/fixtures/many.txt").await?);
 
-    let mut form = FormData::new("----WebKitFormBoundaryWLHCs9qmcJJoyjKR", body);
+    let mut form = FormData::new(body, "----WebKitFormBoundaryWLHCs9qmcJJoyjKR");
 
     while let Some(mut field) = form.try_next().await? {
         assert!(!field.consumed());
@@ -104,7 +104,7 @@ async fn many() -> Result<()> {
             _ => {}
         }
 
-        assert_eq!(field.length, buffer.len() as u64);
+        assert_eq!(field.length, buffer.len());
         assert!(field.consumed());
 
         tracing::info!("{:#?}", field);
@@ -124,7 +124,7 @@ async fn many() -> Result<()> {
 async fn many_noend() -> Result<()> {
     let body = Limited::random(File::open("tests/fixtures/many-noend.txt").await?);
 
-    let mut form = FormData::new("----WebKitFormBoundaryWLHCs9qmcJJoyjKR", body);
+    let mut form = FormData::new(body, "----WebKitFormBoundaryWLHCs9qmcJJoyjKR");
 
     while let Some(mut field) = form.try_next().await? {
         assert!(!field.consumed());
@@ -188,7 +188,7 @@ async fn many_noend() -> Result<()> {
             _ => {}
         }
 
-        assert_eq!(field.length, buffer.len() as u64);
+        assert_eq!(field.length, buffer.len());
         assert!(field.consumed());
 
         tracing::info!("{:#?}", field);
@@ -208,7 +208,7 @@ async fn many_noend() -> Result<()> {
 async fn headers() -> Result<()> {
     let body = Limited::random(File::open("tests/fixtures/headers.txt").await?);
 
-    let mut form = FormData::new("boundary", body);
+    let mut form = FormData::new(body, "boundary");
 
     while let Some(mut field) = form.try_next().await? {
         assert!(!field.consumed());
@@ -233,7 +233,7 @@ async fn headers() -> Result<()> {
             _ => {}
         }
 
-        assert_eq!(field.length, buffer.len() as u64);
+        assert_eq!(field.length, buffer.len());
         assert!(field.consumed());
 
         tracing::info!("{:#?}", field);
@@ -253,7 +253,7 @@ async fn headers() -> Result<()> {
 async fn sample() -> Result<()> {
     let body = Limited::random(File::open("tests/fixtures/sample.txt").await?);
 
-    let mut form = FormData::new("--------------------------434049563556637648550474", body);
+    let mut form = FormData::new(body, "--------------------------434049563556637648550474");
 
     while let Some(mut field) = form.try_next().await? {
         assert!(!field.consumed());
@@ -317,7 +317,7 @@ async fn sample() -> Result<()> {
             _ => {}
         }
 
-        assert_eq!(field.length, buffer.len() as u64);
+        assert_eq!(field.length, buffer.len());
         assert!(field.consumed());
 
         tracing::info!("{:#?}", field);
@@ -337,7 +337,7 @@ async fn sample() -> Result<()> {
 async fn sample_lf() -> Result<()> {
     let body = Limited::random(File::open("tests/fixtures/sample.lf.txt").await?);
 
-    let mut form = FormData::new("--------------------------434049563556637648550474", body);
+    let mut form = FormData::new(body, "--------------------------434049563556637648550474");
 
     while let Some(mut field) = form.try_next().await? {
         assert!(!field.consumed());
@@ -348,7 +348,7 @@ async fn sample_lf() -> Result<()> {
             buffer.extend_from_slice(&buf);
         }
 
-        assert_eq!(field.length, buffer.len() as u64);
+        assert_eq!(field.length, buffer.len());
         assert!(field.consumed());
 
         tracing::info!("{:#?}", field);
@@ -365,12 +365,10 @@ async fn sample_lf() -> Result<()> {
 }
 
 #[tokio::test]
-async fn graphql() -> Result<()> {
+async fn graphql_random() -> Result<()> {
     let body = Limited::random(File::open("tests/fixtures/graphql.txt").await?);
-    // let body = Limited::random_with(File::open("tests/fixtures/graphql.txt").await?, 1024);
-    // let body = Limited::new(File::open("tests/fixtures/graphql.txt").await?, 1033);
 
-    let mut form = FormData::new("------------------------627436eaefdbc285", body);
+    let mut form = FormData::new(body, "------------------------627436eaefdbc285");
 
     while let Some(mut field) = form.try_next().await? {
         assert!(!field.consumed());
@@ -420,7 +418,148 @@ async fn graphql() -> Result<()> {
             _ => {}
         }
 
-        assert_eq!(field.length, buffer.len() as u64);
+        assert_eq!(field.length, buffer.len());
+        assert!(field.consumed());
+
+        tracing::info!("{:#?}", field);
+    }
+
+    let state = form.state();
+    let state = state.try_lock().map_err(|e| anyhow!(e.to_string()))?;
+
+    assert_eq!(state.eof(), true);
+    assert_eq!(state.total(), 5);
+    assert_eq!(state.len(), 1027);
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn graphql_1024() -> Result<()> {
+    let body = Limited::random_with(File::open("tests/fixtures/graphql.txt").await?, 1024);
+    // let body = Limited::new(File::open("tests/fixtures/graphql.txt").await?, 1033);
+
+    let mut form = FormData::new(body, "------------------------627436eaefdbc285");
+
+    while let Some(mut field) = form.try_next().await? {
+        assert!(!field.consumed());
+        assert_eq!(field.length, 0);
+
+        let mut buffer = BytesMut::new();
+        while let Some(buf) = field.try_next().await? {
+            buffer.extend_from_slice(&buf);
+        }
+
+        match field.index {
+            0 => {
+                assert_eq!(field.name, "operations");
+                assert_eq!(field.filename, None);
+                assert_eq!(field.content_type, None);
+                assert_eq!(field.length, 236);
+                assert_eq!(buffer, "[{ \"query\": \"mutation ($file: Upload!) { singleUpload(file: $file) { id } }\", \"variables\": { \"file\": null } }, { \"query\": \"mutation($files: [Upload!]!) { multipleUpload(files: $files) { id } }\", \"variables\": { \"files\": [null, null] } }]");
+            }
+            1 => {
+                assert_eq!(field.name, "map");
+                assert_eq!(field.filename, None);
+                assert_eq!(field.content_type, None);
+                assert_eq!(field.length, 89);
+                assert_eq!(buffer, "{ \"0\": [\"0.variables.file\"], \"1\": [\"1.variables.files.0\"], \"2\": [\"1.variables.files.1\"] }");
+            }
+            2 => {
+                assert_eq!(field.name, "0");
+                assert_eq!(field.filename, Some("a.txt".into()));
+                assert_eq!(field.content_type, Some(mime::TEXT_PLAIN));
+                assert_eq!(field.length, 21);
+                assert_eq!(buffer, "Alpha file content.\r\n");
+            }
+            3 => {
+                assert_eq!(field.name, "1");
+                assert_eq!(field.filename, Some("b.txt".into()));
+                assert_eq!(field.content_type, Some(mime::TEXT_PLAIN));
+                assert_eq!(field.length, 21);
+                assert_eq!(buffer, "Bravo file content.\r\n");
+            }
+            4 => {
+                assert_eq!(field.name, "2");
+                assert_eq!(field.filename, Some("c.txt".into()));
+                assert_eq!(field.content_type, Some(mime::TEXT_PLAIN));
+                assert_eq!(field.length, 23);
+                assert_eq!(buffer, "Charlie file content.\r\n");
+            }
+            _ => {}
+        }
+
+        assert_eq!(field.length, buffer.len());
+        assert!(field.consumed());
+
+        tracing::info!("{:#?}", field);
+    }
+
+    let state = form.state();
+    let state = state.try_lock().map_err(|e| anyhow!(e.to_string()))?;
+
+    assert_eq!(state.eof(), true);
+    assert_eq!(state.total(), 5);
+    assert_eq!(state.len(), 1027);
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn graphql_1033() -> Result<()> {
+    let body = Limited::new(File::open("tests/fixtures/graphql.txt").await?, 1033);
+
+    let mut form = FormData::new(body, "------------------------627436eaefdbc285");
+
+    while let Some(mut field) = form.try_next().await? {
+        assert!(!field.consumed());
+        assert_eq!(field.length, 0);
+
+        let mut buffer = BytesMut::new();
+        while let Some(buf) = field.try_next().await? {
+            buffer.extend_from_slice(&buf);
+        }
+
+        match field.index {
+            0 => {
+                assert_eq!(field.name, "operations");
+                assert_eq!(field.filename, None);
+                assert_eq!(field.content_type, None);
+                assert_eq!(field.length, 236);
+                assert_eq!(buffer, "[{ \"query\": \"mutation ($file: Upload!) { singleUpload(file: $file) { id } }\", \"variables\": { \"file\": null } }, { \"query\": \"mutation($files: [Upload!]!) { multipleUpload(files: $files) { id } }\", \"variables\": { \"files\": [null, null] } }]");
+            }
+            1 => {
+                assert_eq!(field.name, "map");
+                assert_eq!(field.filename, None);
+                assert_eq!(field.content_type, None);
+                assert_eq!(field.length, 89);
+                assert_eq!(buffer, "{ \"0\": [\"0.variables.file\"], \"1\": [\"1.variables.files.0\"], \"2\": [\"1.variables.files.1\"] }");
+            }
+            2 => {
+                assert_eq!(field.name, "0");
+                assert_eq!(field.filename, Some("a.txt".into()));
+                assert_eq!(field.content_type, Some(mime::TEXT_PLAIN));
+                assert_eq!(field.length, 21);
+                assert_eq!(buffer, "Alpha file content.\r\n");
+            }
+            3 => {
+                assert_eq!(field.name, "1");
+                assert_eq!(field.filename, Some("b.txt".into()));
+                assert_eq!(field.content_type, Some(mime::TEXT_PLAIN));
+                assert_eq!(field.length, 21);
+                assert_eq!(buffer, "Bravo file content.\r\n");
+            }
+            4 => {
+                assert_eq!(field.name, "2");
+                assert_eq!(field.filename, Some("c.txt".into()));
+                assert_eq!(field.content_type, Some(mime::TEXT_PLAIN));
+                assert_eq!(field.length, 23);
+                assert_eq!(buffer, "Charlie file content.\r\n");
+            }
+            _ => {}
+        }
+
+        assert_eq!(field.length, buffer.len());
         assert!(field.consumed());
 
         tracing::info!("{:#?}", field);

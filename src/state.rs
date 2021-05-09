@@ -10,7 +10,10 @@ use futures_util::stream::Stream;
 use memchr::memmem;
 use tracing::trace;
 
-use crate::utils::{CRLF, CRLFS, DASHES, DEFAULT_BUF_SIZE};
+use crate::{
+    utils::{CRLF, CRLFS, DASHES},
+    FormDataError, Limits,
+};
 
 #[derive(Debug, PartialEq)]
 enum Flag {
@@ -27,17 +30,19 @@ pub struct State<T> {
     eof: bool,
     flag: Flag,
     length: u64,
-    total: usize,
     buffer: BytesMut,
     delimiter: Bytes,
     is_readable: bool,
-    max_buf_size: usize,
     waker: Option<Waker>,
+    pub(crate) total: usize,
+    pub(crate) files: usize,
+    pub(crate) fields: usize,
+    pub(crate) limits: Limits,
 }
 
 impl<T> State<T> {
     /// Creates new State.
-    pub fn new(boundary: &[u8], io: T) -> Self {
+    pub fn new(io: T, boundary: &[u8], limits: Limits) -> Self {
         // `\r\n--boundary`
         let mut delimiter = BytesMut::with_capacity(4 + boundary.len());
         delimiter.extend_from_slice(&CRLF);
@@ -45,12 +50,15 @@ impl<T> State<T> {
         delimiter.extend_from_slice(&boundary);
 
         // `\r\n`
-        let mut buffer = BytesMut::with_capacity(DEFAULT_BUF_SIZE);
+        let mut buffer = BytesMut::with_capacity(limits.buffer_size);
         buffer.extend_from_slice(&CRLF);
 
         Self {
             io,
+            limits,
             total: 0,
+            files: 0,
+            fields: 0,
             length: 0,
 
             waker: None,
@@ -60,19 +68,7 @@ impl<T> State<T> {
             buffer,
             flag: Flag::Delimiting(false),
             delimiter: delimiter.freeze(),
-
-            max_buf_size: DEFAULT_BUF_SIZE,
         }
-    }
-
-    /// Sets max buffer size.
-    pub fn set_max_buf_size(&mut self, max: usize) {
-        assert!(
-            max >= DEFAULT_BUF_SIZE,
-            "The max_buf_size cannot be smaller than {}.",
-            DEFAULT_BUF_SIZE,
-        );
-        self.max_buf_size = max;
     }
 
     /// Gets io.
@@ -88,6 +84,11 @@ impl<T> State<T> {
     /// Gets waker.
     pub fn waker_mut(&mut self) -> &mut Option<Waker> {
         &mut self.waker
+    }
+
+    /// Gets limits.
+    pub fn limits_mut(&mut self) -> &mut Limits {
+        &mut self.limits
     }
 
     /// Splits buffer.
@@ -122,7 +123,7 @@ impl<T> State<T> {
         &self.delimiter[4..]
     }
 
-    fn decode(&mut self) -> Result<Option<Bytes>> {
+    fn decode(&mut self) -> Option<Bytes> {
         if let Flag::Delimiting(boding) = self.flag {
             if let Some(n) = memmem::find(&self.buffer, &self.delimiter) {
                 self.flag = Flag::Heading(n);
@@ -131,21 +132,21 @@ impl<T> State<T> {
                 if self.eof && self.buffer.len() == 2 && self.buffer[..2] == CRLF {
                     self.buffer.advance(2);
                     self.flag = Flag::Eof;
-                    return Ok(None);
+                    return None;
                 }
 
                 // Empty Part Body
                 if memmem::find(&self.buffer, &self.delimiter[2..]).is_some() {
                     self.flag = Flag::Next;
                     self.buffer.advance(self.delimiter.len() - 2);
-                    return Ok(None);
+                    return None;
                 }
 
                 // Reading Part Body
                 if boding {
                     // Returns buffer with `max_buf_size`
-                    if self.max_buf_size + self.delimiter.len() < self.buffer.len() {
-                        return Ok(Some(self.buffer.split_to(self.max_buf_size).freeze()));
+                    if self.limits.buffer_size + self.delimiter.len() < self.buffer.len() {
+                        return Some(self.buffer.split_to(self.limits.buffer_size).freeze());
                     }
                 }
             }
@@ -166,12 +167,12 @@ impl<T> State<T> {
                     // field'stream need to stop
                     self.flag = Flag::Next;
                     self.buffer.advance(self.delimiter.len());
-                    return Ok(None);
+                    return None;
                 } else {
                     // prev part last data
                     let buf = self.buffer.split_to(*n).freeze();
                     *n = 0;
-                    return Ok(Some(buf));
+                    return Some(buf);
                 }
             }
         }
@@ -188,12 +189,12 @@ impl<T> State<T> {
                 } else if self.buffer[..2] == DASHES {
                     self.buffer.advance(2);
                     self.flag = Flag::Eof;
-                    return Ok(None);
+                    return None;
                 } else {
                     // We dont parse other format, like `\n`
                     self.length -= (self.delimiter.len() - 2) as u64;
                     self.flag = Flag::Eof;
-                    return Ok(None);
+                    return None;
                 }
             }
         }
@@ -201,11 +202,11 @@ impl<T> State<T> {
         if Flag::Header == self.flag {
             if let Some(n) = memmem::find(&self.buffer, &CRLFS) {
                 self.flag = Flag::Delimiting(true);
-                return Ok(Some(self.buffer.split_to(n + CRLFS.len()).freeze()));
+                return Some(self.buffer.split_to(n + CRLFS.len()).freeze());
             }
         }
 
-        Ok(None)
+        None
     }
 }
 
@@ -215,7 +216,10 @@ impl<T> fmt::Debug for State<T> {
             .field("eof", &self.eof)
             .field("flag", &self.flag)
             .field("total", &self.total)
+            .field("files", &self.files)
+            .field("fields", &self.fields)
             .field("length", &self.length)
+            .field("limits", &self.limits)
             .field("is_readable", &self.is_readable)
             .field("boundary", &String::from_utf8_lossy(self.boundary()))
             .finish()
@@ -236,7 +240,7 @@ where
                 trace!("attempting to decode a part");
 
                 // field
-                if let Some(data) = self.decode()? {
+                if let Some(data) = self.decode() {
                     trace!("part decoded from buffer");
                     return Poll::Ready(Some(Ok(data)));
                 }
@@ -271,10 +275,14 @@ where
                 }
                 Poll::Ready(Some(Err(e))) => return Poll::Ready(Some(Err(e.into()))),
                 Poll::Ready(Some(Ok(b))) => {
-                    let l = b.len();
-                    // @TODO: need check payload data length
-                    self.length += l as u64;
+                    let l = b.len() as u64;
+
+                    if self.limits.checked_stream_size(self.length + l) {
+                        return Poll::Ready(Some(Err(FormDataError::PayloadTooLarge.into())));
+                    }
+
                     self.buffer.extend_from_slice(&b);
+                    self.length += l;
                     l
                 }
                 Poll::Ready(None) => 0,

@@ -56,8 +56,8 @@ async fn hello(size: usize, req: Request<Body>) -> Result<Response<Body>> {
         .unwrap();
 
     let mut form = FormData::new(
-        m.get_param(mime::BOUNDARY).unwrap().as_str(),
         req.into_body(),
+        m.get_param(mime::BOUNDARY).unwrap().as_str(),
     );
 
     // 512KB for hyper lager buffer
@@ -67,7 +67,7 @@ async fn hello(size: usize, req: Request<Body>) -> Result<Response<Body>> {
         let name = field.name.to_owned();
         let mut bytes: u64 = 0;
 
-        assert_eq!(bytes, field.length);
+        assert_eq!(bytes as usize, field.length);
 
         if let Some(filename) = &field.filename {
             let filepath = dir.path().join(filename);

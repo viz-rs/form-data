@@ -4,7 +4,6 @@ use http::header::{HeaderMap, HeaderName, HeaderValue};
 use httparse::{parse_headers, Status, EMPTY_HEADER};
 
 pub(crate) const MAX_HEADERS: usize = 8 * 2;
-pub(crate) const DEFAULT_BUF_SIZE: usize = 8 * 1024;
 pub(crate) const DASHES: [u8; 2] = [b'-', b'-']; // `--`
 pub(crate) const CRLF: [u8; 2] = [b'\r', b'\n']; // `\r\n`
 pub(crate) const CRLFS: [u8; 4] = [b'\r', b'\n', b'\r', b'\n']; // `\r\n\r\n`

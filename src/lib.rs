@@ -16,8 +16,10 @@
 #![deny(nonstandard_style)]
 #![warn(missing_docs, missing_doc_code_examples, unreachable_pub)]
 
+mod error;
 mod field;
 mod form;
+mod limits;
 mod state;
 mod utils;
 
@@ -26,3 +28,7 @@ pub use form::FormData;
 pub use field::Field;
 
 pub use state::State;
+
+pub use limits::Limits;
+
+pub use error::FormDataError;
