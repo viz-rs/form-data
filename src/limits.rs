@@ -1,5 +1,7 @@
+use serde::{Deserialize, Serialize};
+
 /// Various limits on incoming data
-#[derive(Debug)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Limits {
     /// Max field name size
     pub field_name_size: Option<usize>,

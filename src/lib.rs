@@ -12,7 +12,7 @@
 //!     https://github.com/jaydenseric/graphql-multipart-request-spec
 //!     https://ec.haxx.se/http/http-multipart
 
-#![forbid(unsafe_code, rust_2018_idioms)]
+#![forbid(unsafe_code)]
 #![deny(nonstandard_style)]
 #![warn(missing_docs, missing_doc_code_examples, unreachable_pub)]
 
