@@ -1,6 +1,6 @@
 [package]
 name = "form-data"
-version = "0.2.2"
+version = "0.2.3"
 authors = ["Fangdun Cai <cfddream@gmail.com>"]
 edition = "2018"
 description = "AsyncRead/AsyncWrite/Stream `multipart/form-data`"

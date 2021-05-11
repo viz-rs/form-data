@@ -107,37 +107,37 @@ impl Limits {
     }
 
     /// Check parts
-    pub fn checked_parts(&self, rhs: usize) -> bool {
-        matches!(self.parts, Some(max) if rhs > max)
+    pub fn checked_parts(&self, rhs: usize) -> Option<usize> {
+        self.parts.filter(|max| rhs > *max)
     }
 
     /// Check fields
-    pub fn checked_fields(&self, rhs: usize) -> bool {
-        matches!(self.fields, Some(max) if rhs > max)
+    pub fn checked_fields(&self, rhs: usize) -> Option<usize> {
+        self.fields.filter(|max| rhs > *max)
     }
 
     /// Check files
-    pub fn checked_files(&self, rhs: usize) -> bool {
-        matches!(self.files, Some(max) if rhs > max)
+    pub fn checked_files(&self, rhs: usize) -> Option<usize> {
+        self.files.filter(|max| rhs > *max)
     }
 
     /// Check stream size
-    pub fn checked_stream_size(&self, rhs: u64) -> bool {
-        matches!(self.stream_size, Some(max) if rhs > max)
+    pub fn checked_stream_size(&self, rhs: u64) -> Option<u64> {
+        self.stream_size.filter(|max| rhs > *max)
     }
 
     /// Check file size
-    pub fn checked_file_size(&self, rhs: usize) -> bool {
-        matches!(self.file_size, Some(max) if rhs > max)
+    pub fn checked_file_size(&self, rhs: usize) -> Option<usize> {
+        self.file_size.filter(|max| rhs > *max)
     }
 
     /// Check field size
-    pub fn checked_field_size(&self, rhs: usize) -> bool {
-        matches!(self.field_size, Some(max) if rhs > max)
+    pub fn checked_field_size(&self, rhs: usize) -> Option<usize> {
+        self.field_size.filter(|max| rhs > *max)
     }
 
     /// Check field name size
-    pub fn checked_field_name_size(&self, rhs: usize) -> bool {
-        matches!(self.field_name_size, Some(max) if rhs > max)
+    pub fn checked_field_name_size(&self, rhs: usize) -> Option<usize> {
+        self.field_name_size.filter(|max| rhs > *max)
     }
 }

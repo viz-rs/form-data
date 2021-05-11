@@ -192,12 +192,14 @@ where
                     let l = buf.len();
 
                     if is_file {
-                        if state.limits.checked_file_size(self.length + l) {
-                            return Poll::Ready(Some(Err(FormDataError::FileTooLarge.into())));
+                        if let Some(max) = state.limits.checked_file_size(self.length + l) {
+                            return Poll::Ready(Some(Err(FormDataError::FileTooLarge(max).into())));
                         }
                     } else {
-                        if state.limits.checked_field_size(self.length + l) {
-                            return Poll::Ready(Some(Err(FormDataError::FileTooLarge.into())));
+                        if let Some(max) = state.limits.checked_field_size(self.length + l) {
+                            return Poll::Ready(Some(
+                                Err(FormDataError::FieldTooLarge(max).into()),
+                            ));
                         }
                     }
 

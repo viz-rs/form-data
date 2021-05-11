@@ -17,16 +17,16 @@ pub enum FormDataError {
     InvalidContentDisposition,
 
     /// Payload too large
-    #[error("payload is too large")]
-    PayloadTooLarge,
+    #[error("payload is too large, limit to `{0}`")]
+    PayloadTooLarge(u64),
 
     /// File too large
-    #[error("file is too large")]
-    FileTooLarge,
+    #[error("file is too large, limit to `{0}`")]
+    FileTooLarge(usize),
 
     /// Field too large
-    #[error("field is too large")]
-    FieldTooLarge,
+    #[error("field is too large, limit to `{0}`")]
+    FieldTooLarge(usize),
 
     /// Parts too many
     #[error("parts is too many, limit to `{0}`")]

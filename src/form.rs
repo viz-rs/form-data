@@ -81,11 +81,8 @@ where
                     tracing::trace!("parse part");
 
                     // too many parts
-                    if state.limits.checked_parts(state.total + 1) {
-                        return Poll::Ready(Some(Err(FormDataError::PartsTooMany(
-                            state.limits.parts.unwrap(),
-                        )
-                        .into())));
+                    if let Some(max) = state.limits.checked_parts(state.total + 1) {
+                        return Poll::Ready(Some(Err(FormDataError::PartsTooMany(max).into())));
                     }
 
                     // invalid part header
@@ -110,29 +107,22 @@ where
                     };
 
                     // field name is too long
-                    if state.limits.checked_field_name_size(name.len()) {
-                        return Poll::Ready(Some(Err(FormDataError::FieldNameTooLong(
-                            state.limits.field_name_size.unwrap(),
-                        )
-                        .into())));
+                    if let Some(max) = state.limits.checked_field_name_size(name.len()) {
+                        return Poll::Ready(Some(Err(FormDataError::FieldNameTooLong(max).into())));
                     }
 
                     if filename.is_some() {
                         // files too many
-                        if state.limits.checked_files(state.files + 1) {
-                            return Poll::Ready(Some(Err(FormDataError::FilesTooMany(
-                                state.limits.files.unwrap(),
-                            )
-                            .into())));
+                        if let Some(max) = state.limits.checked_files(state.files + 1) {
+                            return Poll::Ready(Some(Err(FormDataError::FilesTooMany(max).into())));
                         }
                         state.files += 1;
                     } else {
                         // fields too many
-                        if state.limits.checked_fields(state.fields + 1) {
-                            return Poll::Ready(Some(Err(FormDataError::FieldsTooMany(
-                                state.limits.fields.unwrap(),
-                            )
-                            .into())));
+                        if let Some(max) = state.limits.checked_fields(state.fields + 1) {
+                            return Poll::Ready(Some(
+                                Err(FormDataError::FieldsTooMany(max).into()),
+                            ));
                         }
                         state.fields += 1;
                     }

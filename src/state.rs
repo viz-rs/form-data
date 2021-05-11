@@ -277,8 +277,8 @@ where
                 Poll::Ready(Some(Ok(b))) => {
                     let l = b.len() as u64;
 
-                    if self.limits.checked_stream_size(self.length + l) {
-                        return Poll::Ready(Some(Err(FormDataError::PayloadTooLarge.into())));
+                    if let Some(max) = self.limits.checked_stream_size(self.length + l) {
+                        return Poll::Ready(Some(Err(FormDataError::PayloadTooLarge(max).into())));
                     }
 
                     self.buffer.extend_from_slice(&b);
