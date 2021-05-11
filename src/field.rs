@@ -33,7 +33,11 @@ pub struct Field<T> {
     state: Option<Arc<Mutex<State<T>>>>,
 }
 
-impl<T> Field<T> {
+impl<T, E> Field<T>
+where
+    T: Stream<Item = Result<Bytes, E>> + Unpin,
+    E: Into<Error>,
+{
     /// Creates an empty field.
     pub fn empty() -> Self {
         Self {
@@ -63,11 +67,7 @@ impl<T> Field<T> {
     }
 
     /// Reads field data to bytes.
-    pub async fn bytes<E>(&mut self) -> Result<Bytes>
-    where
-        T: Stream<Item = Result<Bytes, E>> + Unpin,
-        E: Into<Error>,
-    {
+    pub async fn bytes(&mut self) -> Result<Bytes> {
         let mut bytes = BytesMut::new();
         while let Some(buf) = self.try_next().await? {
             bytes.extend_from_slice(&buf);
@@ -79,10 +79,8 @@ impl<T> Field<T> {
     /// 8KB <= buffer <= 512KB, so if we want to handle large buffer.
     /// `Form::set_max_buf_size(512 * 1024);`
     /// 3~4x performance improvement over the 8KB limitation of AsyncRead.
-    pub async fn copy_to<E, W>(&mut self, writer: &mut W) -> Result<u64>
+    pub async fn copy_to<W>(&mut self, writer: &mut W) -> Result<u64>
     where
-        T: Stream<Item = Result<Bytes, E>> + Unpin,
-        E: Into<Error>,
         W: AsyncWrite + Send + Unpin + 'static,
     {
         let mut n = 0;
@@ -98,11 +96,7 @@ impl<T> Field<T> {
     /// 8KB <= buffer <= 512KB, so if we want to handle large buffer.
     /// `Form::set_max_buf_size(512 * 1024);`
     /// 4x+ performance improvement over the 8KB limitation of AsyncRead.
-    pub async fn copy_to_file<E>(&mut self, mut file: File) -> Result<u64>
-    where
-        T: Stream<Item = Result<Bytes, E>> + Unpin,
-        E: Into<Error>,
-    {
+    pub async fn copy_to_file(&mut self, mut file: File) -> Result<u64> {
         let mut n = 0;
         while let Some(buf) = self.try_next().await? {
             n += file.write(&buf)?;
@@ -112,11 +106,7 @@ impl<T> Field<T> {
     }
 
     /// Ignores current field data, pass it.
-    pub async fn ignore<E>(&mut self) -> Result<()>
-    where
-        T: Stream<Item = Result<Bytes, E>> + Unpin,
-        E: Into<Error>,
-    {
+    pub async fn ignore(&mut self) -> Result<()> {
         while let Some(buf) = self.try_next().await? {
             drop(buf);
         }
