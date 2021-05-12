@@ -37,7 +37,12 @@ tempfile = "3.1"
 hyper = { version = "0.14", features = ["stream", "server", "http1", "tcp"] }
 tokio = { version = "1.0", default-features = false, features = ["macros", "rt-multi-thread"] }
 tracing-subscriber = "0.2"
+warp = "0.3"
 
 [[example]]
 name = "hyper"
 path = "examples/hyper.rs"
+
+[[example]]
+name = "warp"
+path = "examples/warp.rs"
