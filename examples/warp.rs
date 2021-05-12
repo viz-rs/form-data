@@ -1,59 +1,19 @@
 #![deny(warnings)]
 
-use anyhow::{Error, Result};
+use anyhow::Result;
 use async_fs::File;
-use bytes::{Buf, Bytes};
+use bytes::Buf;
 use form_data::FormData;
 use futures_util::{
     io::{self, AsyncWriteExt},
-    ready,
     stream::{Stream, TryStreamExt},
 };
-use hyper::{header::HeaderValue, Body, Response};
-use std::pin::Pin;
-use std::task::{Context, Poll};
+use hyper::{Body, Response};
 use tempfile::tempdir;
 use warp::Filter;
 
-struct MyStream<T> {
-    body: T,
-}
-
-impl<T, B> MyStream<T>
-where
-    T: Stream<Item = Result<B, warp::Error>> + Unpin,
-    B: Buf,
-{
-    pub fn new(body: T) -> Self {
-        Self { body }
-    }
-}
-
-impl<T, B> Stream for MyStream<T>
-where
-    T: Stream<Item = Result<B, warp::Error>> + Unpin,
-    B: Buf,
-{
-    type Item = Result<Bytes>;
-
-    fn poll_next(self: Pin<&mut Self>, cx: &mut Context) -> Poll<Option<Self::Item>> {
-        let opt_item = ready!(Pin::new(&mut self.get_mut().body).poll_next(cx));
-
-        match opt_item {
-            None => Poll::Ready(None),
-            Some(item) => {
-                let stream_buf = item
-                    .map(|mut b| b.copy_to_bytes(b.remaining()))
-                    .map_err(Error::new);
-
-                Poll::Ready(Some(stream_buf))
-            }
-        }
-    }
-}
-
 async fn form(
-    header: HeaderValue,
+    m: mime::Mime,
     body: impl Stream<Item = Result<impl Buf, warp::Error>> + Unpin,
 ) -> Result<impl warp::Reply, anyhow::Error> {
     let dir = tempdir()?;
@@ -62,14 +22,8 @@ async fn form(
     txt.push_str(&dir.path().to_string_lossy());
     txt.push_str("\r\n");
 
-    let m = header
-        .to_str()
-        .ok()
-        .and_then(|v| v.parse::<mime::Mime>().ok())
-        .unwrap();
-
     let mut form = FormData::new(
-        MyStream::new(body),
+        body.map_ok(|mut b| b.copy_to_bytes(b.remaining())),
         m.get_param(mime::BOUNDARY).unwrap().as_str(),
     );
 
@@ -141,7 +95,7 @@ async fn form(
 #[tokio::main]
 async fn main() {
     let routes = warp::post()
-        .and(warp::header::value("Content-Type"))
+        .and(warp::header::<mime::Mime>("Content-Type"))
         .and(warp::body::stream())
         .and_then(|h, b| async {
             let r = form(h, b).await;
