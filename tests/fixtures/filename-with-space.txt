@@ -1,0 +1,10 @@
+--------------------------d74496d66958873e
+Content-Disposition: form-data; name="person"
+
+anonymous
+--------------------------d74496d66958873e
+Content-Disposition: form-data; name="secret"; filename="foo bar.txt"
+Content-Type: text/plain
+
+contents of the file
+--------------------------d74496d66958873e--

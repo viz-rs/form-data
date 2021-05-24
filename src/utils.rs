@@ -88,7 +88,9 @@ pub(crate) fn parse_content_disposition(hv: &[u8]) -> Result<(String, Option<Str
             }
             b' ' => {
                 i += 1;
-                j = i;
+                if p == 0 {
+                    j = i;
+                }
             }
             b'=' => {
                 v.push((&hv[j..i], &[]));

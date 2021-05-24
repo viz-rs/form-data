@@ -37,6 +37,49 @@ async fn empty() -> Result<()> {
 }
 
 #[tokio::test]
+async fn filename_with_space() -> Result<()> {
+    let body = Limited::random(File::open("tests/fixtures/filename-with-space.txt").await?);
+
+    let mut form = FormData::new(body, "------------------------d74496d66958873e");
+
+    while let Some(mut field) = form.try_next().await? {
+        assert!(!field.consumed());
+        assert_eq!(field.length, 0);
+
+        let mut buffer = BytesMut::new();
+        while let Some(buf) = field.try_next().await? {
+            buffer.extend_from_slice(&buf);
+
+            match field.index {
+                0 => {
+                    assert_eq!(field.name, "person");
+                    assert_eq!(field.content_type, None);
+                    assert_eq!(field.length, 9);
+                    assert_eq!(buffer, "anonymous");
+                },
+                1 => {
+                    assert_eq!(field.name, "secret");
+                    assert_eq!(field.filename, Some("foo bar.txt".to_string()));
+                    assert_eq!(field.content_type, Some(mime::TEXT_PLAIN));
+                    assert_eq!(field.length, 20);
+                    assert_eq!(buffer, "contents of the file");
+                },
+                _ => {}
+            }
+        }
+    }
+
+    let state = form.state();
+    let state = state.try_lock().map_err(|e| anyhow!(e.to_string()))?;
+
+    assert_eq!(state.eof(), true);
+    assert_eq!(state.total(), 2);
+    assert_eq!(state.len(), 313);
+
+    Ok(())
+}
+
+#[tokio::test]
 async fn many() -> Result<()> {
     let body = Limited::random(File::open("tests/fixtures/many.txt").await?);
 
