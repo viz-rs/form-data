@@ -140,7 +140,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // 512
     // 8 * 2
     // 8
-    let size = arg.split_off(7).parse::<usize>().unwrap_or_else(|_| 8) * 1024;
+    let size = arg.split_off(7).parse::<usize>().unwrap_or(8) * 1024;
 
     // For every connection, we must make a `Service` to handle all
     // incoming HTTP requests on said connection.

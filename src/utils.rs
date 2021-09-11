@@ -20,14 +20,14 @@ pub(crate) fn parse_content_type(header: Option<&http::HeaderValue>) -> Option<m
 
 pub(crate) fn parse_part_headers(bytes: &[u8]) -> Result<HeaderMap> {
     let mut headers = [EMPTY_HEADER; MAX_HEADERS];
-    match parse_headers(&bytes, &mut headers) {
+    match parse_headers(bytes, &mut headers) {
         Ok(Status::Complete((_, hs))) => {
             let len = hs.len();
             let mut header_map = HeaderMap::with_capacity(len);
             for h in hs.iter().take(len) {
                 header_map.append(
                     HeaderName::from_bytes(h.name.as_bytes())?,
-                    HeaderValue::from_bytes(&h.value)?,
+                    HeaderValue::from_bytes(h.value)?,
                 );
             }
             Ok(header_map)
@@ -37,6 +37,7 @@ pub(crate) fn parse_part_headers(bytes: &[u8]) -> Result<HeaderMap> {
     }
 }
 
+#[allow(clippy::many_single_char_names)]
 pub(crate) fn parse_content_disposition(hv: &[u8]) -> Result<(String, Option<String>)> {
     if hv.len() < 20 {
         return Err(anyhow!("invalid content disposition"));
@@ -51,7 +52,7 @@ pub(crate) fn parse_content_disposition(hv: &[u8]) -> Result<(String, Option<Str
 
     let mut j = i;
     let mut p = 0;
-    let mut v: Vec<(&[u8], &[u8])> = Vec::new();
+    let mut v = Vec::<(&[u8], &[u8])>::with_capacity(2);
 
     v.push((form_data, &[]));
 
@@ -119,7 +120,7 @@ pub(crate) fn parse_content_disposition(hv: &[u8]) -> Result<(String, Option<Str
     }
 
     // name
-    if v[1].0 == NAME && v[1].1.len() > 0 {
+    if v[1].0 == NAME && !v[1].1.is_empty() {
         return Ok((
             String::from_utf8_lossy(v[1].1).to_string(),
             if v.len() > 2 && v[2].0 == FILE_NAME {

@@ -47,7 +47,7 @@ impl<T> State<T> {
         let mut delimiter = BytesMut::with_capacity(4 + boundary.len());
         delimiter.extend_from_slice(&CRLF);
         delimiter.extend_from_slice(&DASHES);
-        delimiter.extend_from_slice(&boundary);
+        delimiter.extend_from_slice(boundary);
 
         // `\r\n`
         let mut buffer = BytesMut::with_capacity(limits.buffer_size);
@@ -106,6 +106,11 @@ impl<T> State<T> {
     /// Gets the length of the form-data.
     pub fn len(&self) -> u64 {
         self.length
+    }
+
+    /// Gets bool of the form-data's length is zero.
+    pub fn is_empty(&self) -> bool {
+        self.length == 0
     }
 
     /// Gets EOF.
@@ -181,21 +186,19 @@ impl<T> State<T> {
             self.flag = Flag::Headed;
         }
 
-        if Flag::Headed == self.flag {
-            if self.buffer.len() > 1 {
-                if self.buffer[..2] == CRLF {
-                    self.buffer.advance(2);
-                    self.flag = Flag::Header;
-                } else if self.buffer[..2] == DASHES {
-                    self.buffer.advance(2);
-                    self.flag = Flag::Eof;
-                    return None;
-                } else {
-                    // We dont parse other format, like `\n`
-                    self.length -= (self.delimiter.len() - 2) as u64;
-                    self.flag = Flag::Eof;
-                    return None;
-                }
+        if Flag::Headed == self.flag && self.buffer.len() > 1 {
+            if self.buffer[..2] == CRLF {
+                self.buffer.advance(2);
+                self.flag = Flag::Header;
+            } else if self.buffer[..2] == DASHES {
+                self.buffer.advance(2);
+                self.flag = Flag::Eof;
+                return None;
+            } else {
+                // We dont parse other format, like `\n`
+                self.length -= (self.delimiter.len() - 2) as u64;
+                self.flag = Flag::Eof;
+                return None;
             }
         }
 

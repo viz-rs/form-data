@@ -29,7 +29,7 @@ async fn empty() -> Result<()> {
     let state = form.state();
     let state = state.try_lock().map_err(|e| anyhow!(e.to_string()))?;
 
-    assert_eq!(state.eof(), true);
+    assert!(state.eof());
     assert_eq!(state.total(), 0);
     assert_eq!(state.len(), 0);
 
@@ -72,7 +72,7 @@ async fn filename_with_space() -> Result<()> {
     let state = form.state();
     let state = state.try_lock().map_err(|e| anyhow!(e.to_string()))?;
 
-    assert_eq!(state.eof(), true);
+    assert!(state.eof());
     assert_eq!(state.total(), 2);
     assert_eq!(state.len(), 313);
 
@@ -156,7 +156,7 @@ async fn many() -> Result<()> {
     let state = form.state();
     let state = state.try_lock().map_err(|e| anyhow!(e.to_string()))?;
 
-    assert_eq!(state.eof(), true);
+    assert!(state.eof());
     assert_eq!(state.total(), 7);
     assert_eq!(state.len(), 809);
 
@@ -240,7 +240,7 @@ async fn many_noend() -> Result<()> {
     let state = form.state();
     let state = state.try_lock().map_err(|e| anyhow!(e.to_string()))?;
 
-    assert_eq!(state.eof(), true);
+    assert!(state.eof());
     assert_eq!(state.total(), 7);
     assert_eq!(state.len(), 767);
 
@@ -285,7 +285,7 @@ async fn headers() -> Result<()> {
     let state = form.state();
     let state = state.try_lock().map_err(|e| anyhow!(e.to_string()))?;
 
-    assert_eq!(state.eof(), true);
+    assert!(state.eof());
     assert_eq!(state.total(), 1);
     assert_eq!(state.len(), 175);
 
@@ -369,7 +369,7 @@ async fn sample() -> Result<()> {
     let state = form.state();
     let state = state.try_lock().map_err(|e| anyhow!(e.to_string()))?;
 
-    assert_eq!(state.eof(), true);
+    assert!(state.eof());
     assert_eq!(state.total(), 5);
     assert_eq!(state.len(), 1043);
 
@@ -400,7 +400,7 @@ async fn sample_lf() -> Result<()> {
     let state = form.state();
     let state = state.try_lock().map_err(|e| anyhow!(e.to_string()))?;
 
-    assert_eq!(state.eof(), true);
+    assert!(state.eof());
     assert_eq!(state.total(), 0);
     assert_eq!(state.len(), 0);
 
@@ -470,7 +470,7 @@ async fn graphql_random() -> Result<()> {
     let state = form.state();
     let state = state.try_lock().map_err(|e| anyhow!(e.to_string()))?;
 
-    assert_eq!(state.eof(), true);
+    assert!(state.eof());
     assert_eq!(state.total(), 5);
     assert_eq!(state.len(), 1027);
 
@@ -541,7 +541,7 @@ async fn graphql_1024() -> Result<()> {
     let state = form.state();
     let state = state.try_lock().map_err(|e| anyhow!(e.to_string()))?;
 
-    assert_eq!(state.eof(), true);
+    assert!(state.eof());
     assert_eq!(state.total(), 5);
     assert_eq!(state.len(), 1027);
 
@@ -611,7 +611,7 @@ async fn graphql_1033() -> Result<()> {
     let state = form.state();
     let state = state.try_lock().map_err(|e| anyhow!(e.to_string()))?;
 
-    assert_eq!(state.eof(), true);
+    assert!(state.eof());
     assert_eq!(state.total(), 5);
     assert_eq!(state.len(), 1027);
 

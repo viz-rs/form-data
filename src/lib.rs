@@ -14,7 +14,7 @@
 
 #![forbid(unsafe_code)]
 #![deny(nonstandard_style)]
-#![warn(missing_docs, missing_doc_code_examples, unreachable_pub)]
+#![warn(missing_docs, rustdoc::missing_doc_code_examples, unreachable_pub)]
 
 mod error;
 mod field;

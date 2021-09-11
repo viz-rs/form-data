@@ -62,12 +62,12 @@ impl<T: AsyncRead + Unpin + Send + 'static> Stream for Limited<T> {
         match Pin::new(&mut self.io).poll_read(cx, &mut buf[..])? {
             Poll::Ready(0) => {
                 self.eof = true;
-                return Poll::Ready(None);
+                Poll::Ready(None)
             }
             Poll::Ready(n) => {
                 self.length += n as u64;
                 buf.truncate(n);
-                return Poll::Ready(Some(Ok(buf.freeze())));
+                Poll::Ready(Some(Ok(buf.freeze())))
             }
             Poll::Pending => Poll::Pending,
         }

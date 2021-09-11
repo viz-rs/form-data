@@ -75,7 +75,7 @@ where
             Poll::Ready(res) => match res {
                 None => {
                     tracing::trace!("parse eof");
-                    return Poll::Ready(None);
+                    Poll::Ready(None)
                 }
                 Some(buf) => {
                     tracing::trace!("parse part");
@@ -96,7 +96,7 @@ where
                     // invalid content disposition
                     let (name, filename) = match headers
                         .remove(CONTENT_DISPOSITION)
-                        .and_then(|v| parse_content_disposition(&v.as_bytes()).ok())
+                        .and_then(|v| parse_content_disposition(v.as_bytes()).ok())
                     {
                         Some(n) => n,
                         None => {
@@ -136,7 +136,7 @@ where
                     field.content_type = parse_content_type(headers.remove(CONTENT_TYPE).as_ref());
                     field.state_mut().replace(self.state());
 
-                    if headers.len() > 0 {
+                    if !headers.is_empty() {
                         field.headers_mut().replace(headers);
                     }
 

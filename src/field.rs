@@ -185,12 +185,10 @@ where
                         if let Some(max) = state.limits.checked_file_size(self.length + l) {
                             return Poll::Ready(Some(Err(FormDataError::FileTooLarge(max).into())));
                         }
-                    } else {
-                        if let Some(max) = state.limits.checked_field_size(self.length + l) {
-                            return Poll::Ready(Some(
-                                Err(FormDataError::FieldTooLarge(max).into()),
-                            ));
-                        }
+                    } else if let Some(max) = state.limits.checked_field_size(self.length + l) {
+                        return Poll::Ready(Some(
+                            Err(FormDataError::FieldTooLarge(max).into()),
+                        ));
                     }
 
                     self.length += l;
