@@ -19,6 +19,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Clippy Fixed
 
-[Unreleased]: https://github.com/viz-rs/path-tree/compare/v0.2.6...HEAD
-[0.2.6]: https://github.com/viz-rs/path-tree/compare/v0.2.5...v0.2.6
-[0.2.5]: https://github.com/viz-rs/path-tree/compare/v0.2.4...v0.2.5
+[Unreleased]: https://github.com/viz-rs/form-data/compare/v0.2.6...HEAD
+[0.2.6]: https://github.com/viz-rs/form-data/compare/v0.2.5...v0.2.6
+[0.2.5]: https://github.com/viz-rs/form-data/compare/v0.2.4...v0.2.5
