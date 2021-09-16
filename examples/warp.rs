@@ -54,8 +54,8 @@ async fn form(
                     // let mut writer = File::create(&filepath).await?;
                     // bytes = field.copy_to(&mut writer).await?;
 
-                    let writer = std::fs::File::create(&filepath)?;
-                    bytes = field.copy_to_file(writer).await?;
+                    let mut writer = std::fs::File::create(&filepath)?;
+                    bytes = field.copy_to_file(&mut writer).await?;
                 }
             }
 

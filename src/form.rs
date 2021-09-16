@@ -44,7 +44,7 @@ impl<T> FormData<T> {
     }
 
     /// Sets Buffer max size for reading.
-    pub fn set_max_buf_size(&mut self, max: usize) -> Result<()> {
+    pub fn set_max_buf_size(&self, max: usize) -> Result<()> {
         self.state
             .try_lock()
             .map_err(|e| anyhow!(e.to_string()))?

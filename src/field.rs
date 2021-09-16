@@ -96,7 +96,7 @@ where
     /// 8KB <= buffer <= 512KB, so if we want to handle large buffer.
     /// `Form::set_max_buf_size(512 * 1024);`
     /// 4x+ performance improvement over the 8KB limitation of AsyncRead.
-    pub async fn copy_to_file(&mut self, mut file: File) -> Result<u64> {
+    pub async fn copy_to_file(&mut self, file: &mut File) -> Result<u64> {
         let mut n = 0;
         while let Some(buf) = self.try_next().await? {
             n += file.write(&buf)?;
