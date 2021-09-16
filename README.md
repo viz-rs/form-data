@@ -42,7 +42,7 @@
 
   - Use `copy_to`, copy bigger buffer to a writer(`AsyncRead`), `field.copy_to(&mut writer)`
 
-  - Use `copy_to_file`, copy bigger buffer to a file(`File`), `field.copy_to_file(file)`
+  - Use `copy_to_file`, copy bigger buffer to a file(`File`), `field.copy_to_file(&mut file)`
 
 - Preparse headers of part
 
