@@ -56,14 +56,14 @@ async fn filename_with_space() -> Result<()> {
                     assert_eq!(field.content_type, None);
                     assert_eq!(field.length, 9);
                     assert_eq!(buffer, "anonymous");
-                },
+                }
                 1 => {
                     assert_eq!(field.name, "secret");
                     assert_eq!(field.filename, Some("foo bar.txt".to_string()));
                     assert_eq!(field.content_type, Some(mime::TEXT_PLAIN));
                     assert_eq!(field.length, 20);
                     assert_eq!(buffer, "contents of the file");
-                },
+                }
                 _ => {}
             }
         }
