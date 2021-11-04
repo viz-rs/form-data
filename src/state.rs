@@ -26,6 +26,7 @@ pub struct State<T> {
     pub(crate) buffer: BytesMut,
     delimiter: Bytes,
     pub(crate) is_readable: bool,
+    #[cfg(feature = "async")]
     waker: Option<Waker>,
     pub(crate) total: usize,
     pub(crate) files: usize,
@@ -70,11 +71,13 @@ impl<T> State<T> {
     }
 
     /// Gets waker.
+    #[cfg(feature = "async")]
     pub fn waker(&self) -> Option<&Waker> {
         self.waker.as_ref()
     }
 
     /// Gets waker.
+    #[cfg(feature = "async")]
     pub fn waker_mut(&mut self) -> &mut Option<Waker> {
         &mut self.waker
     }
