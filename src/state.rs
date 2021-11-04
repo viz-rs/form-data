@@ -1,22 +1,15 @@
-use std::{
-    fmt,
-    pin::Pin,
-    task::{Context, Poll, Waker},
-};
+use std::{fmt, task::Waker};
 
-use anyhow::{Error, Result};
 use bytes::{Buf, Bytes, BytesMut};
-use futures_util::stream::Stream;
 use memchr::memmem;
-use tracing::trace;
 
 use crate::{
     utils::{CRLF, CRLFS, DASHES},
-    FormDataError, Limits,
+    Limits,
 };
 
 #[derive(Debug, PartialEq)]
-enum Flag {
+pub(crate) enum Flag {
     Delimiting(bool),
     Heading(usize),
     Headed,
@@ -27,12 +20,12 @@ enum Flag {
 /// IO State
 pub struct State<T> {
     io: T,
-    eof: bool,
-    flag: Flag,
-    length: u64,
-    buffer: BytesMut,
+    pub(crate) eof: bool,
+    pub(crate) flag: Flag,
+    pub(crate) length: u64,
+    pub(crate) buffer: BytesMut,
     delimiter: Bytes,
-    is_readable: bool,
+    pub(crate) is_readable: bool,
     waker: Option<Waker>,
     pub(crate) total: usize,
     pub(crate) files: usize,
@@ -128,7 +121,7 @@ impl<T> State<T> {
         &self.delimiter[4..]
     }
 
-    fn decode(&mut self) -> Option<Bytes> {
+    pub(crate) fn decode(&mut self) -> Option<Bytes> {
         if let Flag::Delimiting(boding) = self.flag {
             if let Some(n) = memmem::find(&self.buffer, &self.delimiter) {
                 self.flag = Flag::Heading(n);
@@ -226,76 +219,5 @@ impl<T> fmt::Debug for State<T> {
             .field("is_readable", &self.is_readable)
             .field("boundary", &String::from_utf8_lossy(self.boundary()))
             .finish()
-    }
-}
-
-impl<T, E> Stream for State<T>
-where
-    T: Stream<Item = Result<Bytes, E>> + Unpin,
-    E: Into<Error>,
-{
-    type Item = Result<Bytes>;
-
-    fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
-        loop {
-            if self.is_readable {
-                // part
-                trace!("attempting to decode a part");
-
-                // field
-                if let Some(data) = self.decode() {
-                    trace!("part decoded from buffer");
-                    return Poll::Ready(Some(Ok(data)));
-                }
-
-                // field stream is ended
-                if Flag::Next == self.flag {
-                    return Poll::Ready(None);
-                }
-
-                // whole stream is ended
-                if Flag::Eof == self.flag {
-                    self.length -= self.buffer.len() as u64;
-                    self.buffer.clear();
-                    self.eof = true;
-                    return Poll::Ready(None);
-                }
-
-                self.is_readable = false;
-            }
-
-            trace!("polling data from stream");
-
-            if self.eof {
-                self.is_readable = true;
-                continue;
-            }
-
-            self.buffer.reserve(1);
-            let bytect = match Pin::new(self.io_mut()).poll_next(cx) {
-                Poll::Pending => {
-                    return Poll::Pending;
-                }
-                Poll::Ready(Some(Err(e))) => return Poll::Ready(Some(Err(e.into()))),
-                Poll::Ready(Some(Ok(b))) => {
-                    let l = b.len() as u64;
-
-                    if let Some(max) = self.limits.checked_stream_size(self.length + l) {
-                        return Poll::Ready(Some(Err(FormDataError::PayloadTooLarge(max).into())));
-                    }
-
-                    self.buffer.extend_from_slice(&b);
-                    self.length += l;
-                    l
-                }
-                Poll::Ready(None) => 0,
-            };
-
-            if bytect == 0 {
-                self.eof = true;
-            }
-
-            self.is_readable = true;
-        }
     }
 }

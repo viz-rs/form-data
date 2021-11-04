@@ -27,8 +27,17 @@ pub use form::FormData;
 
 pub use field::Field;
 
-pub use state::State;
+pub use state::*;
 
 pub use limits::Limits;
 
 pub use error::FormDataError;
+
+#[cfg(feature = "async")]
+mod r#async;
+#[cfg(feature = "async")]
+pub use r#async::*;
+#[cfg(feature = "sync")]
+mod sync;
+#[cfg(feature = "sync")]
+pub use sync::*;

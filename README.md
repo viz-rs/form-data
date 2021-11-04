@@ -31,7 +31,7 @@
 
 - **Stream**: `Form`, `Field`
 
-- **AsyncRead**: `Field`, so easy `read`/`copy` field data to anywhere.
+- **AsyncRead/Read**: `Field`, so easy `read`/`copy` field data to anywhere.
 
 - **Fast**: Hyper supports bigger buffer by defaults, over 8KB, up to 512KB possible.
 
