@@ -1,4 +1,7 @@
-use std::{fmt, task::Waker};
+use std::fmt;
+
+#[cfg(feature = "async")]
+use std::task::Waker;
 
 use bytes::{Buf, Bytes, BytesMut};
 use memchr::memmem;
@@ -55,6 +58,7 @@ impl<T> State<T> {
             fields: 0,
             length: 0,
 
+            #[cfg(feature = "async")]
             waker: None,
             eof: false,
             is_readable: false,
