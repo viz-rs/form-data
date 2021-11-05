@@ -13,7 +13,7 @@ use crate::{
     Field, Flag, FormData, FormDataError, State,
 };
 
-impl<T> std::io::Read for State<T>
+impl<T> Read for State<T>
 where
     T: Read,
 {
