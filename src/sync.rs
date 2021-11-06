@@ -73,7 +73,8 @@ where
                         return Some(Err(FormDataError::PayloadTooLarge(max).into()));
                     }
 
-                    self.buffer.extend_from_slice(&b[..s]);
+                    b.truncate(s);
+                    self.buffer.extend_from_slice(&b);
                     self.length += l;
                     l
                 }
