@@ -42,7 +42,7 @@ async-fs = "1.5"
 tempfile = "3.2"
 hyper = { version = "0.14", features = ["stream", "server", "http1", "tcp"] }
 tokio = { version = "1.13", default-features = false, features = ["macros", "rt-multi-thread"] }
-tracing-subscriber = "0.3"
+tracing-subscriber = { version="0.3", features = ["env-filter"] }
 warp = "0.3"
 tiny_http = "0.9.0"
 
