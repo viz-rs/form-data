@@ -64,7 +64,8 @@ where
             }
 
             self.buffer.reserve(1);
-            let mut b = vec![0; self.limits.buffer_size];
+            let mut b = BytesMut::new();
+            b.resize(self.limits.buffer_size, 0);
             let bytect = match self.read(&mut b) {
                 Err(e) => return Some(Err(e.into())),
                 Ok(s) => {
@@ -73,8 +74,7 @@ where
                         return Some(Err(FormDataError::PayloadTooLarge(max).into()));
                     }
 
-                    b.truncate(s);
-                    self.buffer.extend_from_slice(&b);
+                    self.buffer.extend_from_slice(&b.split_to(s));
                     self.length += l;
                     l
                 }
