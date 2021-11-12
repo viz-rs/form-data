@@ -27,7 +27,7 @@ jobs:
           RUST_LOG: trace
         with:
           command: test
-          args: --test form-data --test hype-body
+          args: --test form-data --test hyper-body
 
       - uses: actions-rs/cargo@v1
         env:
