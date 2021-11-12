@@ -21,9 +21,11 @@ async fn hyper_body() -> Result<()> {
 
     let payload = File::open("tests/fixtures/graphql.txt").await?;
     let stream = Limited::random_with(payload, 256);
+    let limit = stream.limit();
 
     let body = Body::wrap_stream(stream);
     let mut form = FormData::new(body, "------------------------627436eaefdbc285");
+    form.set_max_buf_size(limit)?;
 
     while let Some(mut field) = form.try_next().await? {
         assert!(!field.consumed());

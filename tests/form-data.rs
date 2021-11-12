@@ -39,8 +39,10 @@ async fn empty() -> Result<()> {
 #[tokio::test]
 async fn filename_with_space() -> Result<()> {
     let body = Limited::random(File::open("tests/fixtures/filename-with-space.txt").await?);
+    let limit = body.limit();
 
     let mut form = FormData::new(body, "------------------------d74496d66958873e");
+    form.set_max_buf_size(limit)?;
 
     while let Some(mut field) = form.try_next().await? {
         assert!(!field.consumed());
@@ -82,8 +84,10 @@ async fn filename_with_space() -> Result<()> {
 #[tokio::test]
 async fn many() -> Result<()> {
     let body = Limited::random(File::open("tests/fixtures/many.txt").await?);
+    let limit = body.limit();
 
     let mut form = FormData::new(body, "----WebKitFormBoundaryWLHCs9qmcJJoyjKR");
+    form.set_max_buf_size(limit)?;
 
     while let Some(mut field) = form.try_next().await? {
         assert!(!field.consumed());
@@ -166,8 +170,10 @@ async fn many() -> Result<()> {
 #[tokio::test]
 async fn many_noend() -> Result<()> {
     let body = Limited::random(File::open("tests/fixtures/many-noend.txt").await?);
+    let limit = body.limit();
 
     let mut form = FormData::new(body, "----WebKitFormBoundaryWLHCs9qmcJJoyjKR");
+    form.set_max_buf_size(limit)?;
 
     while let Some(mut field) = form.try_next().await? {
         assert!(!field.consumed());
@@ -250,8 +256,10 @@ async fn many_noend() -> Result<()> {
 #[tokio::test]
 async fn headers() -> Result<()> {
     let body = Limited::random(File::open("tests/fixtures/headers.txt").await?);
+    let limit = body.limit();
 
     let mut form = FormData::new(body, "boundary");
+    form.set_max_buf_size(limit)?;
 
     while let Some(mut field) = form.try_next().await? {
         assert!(!field.consumed());
@@ -295,8 +303,10 @@ async fn headers() -> Result<()> {
 #[tokio::test]
 async fn sample() -> Result<()> {
     let body = Limited::random(File::open("tests/fixtures/sample.txt").await?);
+    let limit = body.limit();
 
     let mut form = FormData::new(body, "--------------------------434049563556637648550474");
+    form.set_max_buf_size(limit)?;
 
     while let Some(mut field) = form.try_next().await? {
         assert!(!field.consumed());
@@ -379,8 +389,10 @@ async fn sample() -> Result<()> {
 #[tokio::test]
 async fn sample_lf() -> Result<()> {
     let body = Limited::random(File::open("tests/fixtures/sample.lf.txt").await?);
+    let limit = body.limit();
 
     let mut form = FormData::new(body, "--------------------------434049563556637648550474");
+    form.set_max_buf_size(limit)?;
 
     while let Some(mut field) = form.try_next().await? {
         assert!(!field.consumed());
@@ -410,8 +422,10 @@ async fn sample_lf() -> Result<()> {
 #[tokio::test]
 async fn graphql_random() -> Result<()> {
     let body = Limited::random(File::open("tests/fixtures/graphql.txt").await?);
+    let limit = body.limit();
 
     let mut form = FormData::new(body, "------------------------627436eaefdbc285");
+    form.set_max_buf_size(limit)?;
 
     while let Some(mut field) = form.try_next().await? {
         assert!(!field.consumed());
@@ -481,8 +495,10 @@ async fn graphql_random() -> Result<()> {
 async fn graphql_1024() -> Result<()> {
     let body = Limited::random_with(File::open("tests/fixtures/graphql.txt").await?, 1024);
     // let body = Limited::new(File::open("tests/fixtures/graphql.txt").await?, 1033);
+    let limit = body.limit();
 
     let mut form = FormData::new(body, "------------------------627436eaefdbc285");
+    form.set_max_buf_size(limit)?;
 
     while let Some(mut field) = form.try_next().await? {
         assert!(!field.consumed());
@@ -551,8 +567,10 @@ async fn graphql_1024() -> Result<()> {
 #[tokio::test]
 async fn graphql_1033() -> Result<()> {
     let body = Limited::new(File::open("tests/fixtures/graphql.txt").await?, 1033);
+    let limit = body.limit();
 
     let mut form = FormData::new(body, "------------------------627436eaefdbc285");
+    form.set_max_buf_size(limit)?;
 
     while let Some(mut field) = form.try_next().await? {
         assert!(!field.consumed());

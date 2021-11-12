@@ -24,7 +24,14 @@ jobs:
 
       - uses: actions-rs/cargo@v1
         env:
-          RUST_LOG: debug
+          RUST_LOG: trace
         with:
           command: test
-          args:
+          args: --test form-data --test hype-body
+
+      - uses: actions-rs/cargo@v1
+        env:
+          RUST_LOG: trace
+        with:
+          command: test
+          args: --test tiny-body --no-default-features --features="sync"

@@ -1,14 +1,22 @@
 use std::fmt;
-use std::pin::Pin;
-use std::task::{Context, Poll};
 
 use anyhow::Result;
 use bytes::{Bytes, BytesMut};
+
+#[cfg(feature = "async")]
 use futures_util::{
     io::{self, AsyncRead},
     stream::Stream,
 };
 use rand::Rng;
+#[cfg(feature = "async")]
+use std::{
+    pin::Pin,
+    task::{Context, Poll},
+};
+
+#[cfg(feature = "sync")]
+use std::io::{self, Read};
 
 pub const LIMITED: usize = 8 * 1024;
 
@@ -39,6 +47,10 @@ impl<T> Limited<T> {
     pub fn random_with(io: T, max: usize) -> Self {
         Self::new(io, rand::thread_rng().gen_range(1..max))
     }
+
+    pub fn limit(&self) -> usize {
+        self.limit
+    }
 }
 
 impl<T> fmt::Debug for Limited<T> {
@@ -51,6 +63,7 @@ impl<T> fmt::Debug for Limited<T> {
     }
 }
 
+#[cfg(feature = "async")]
 impl<T: AsyncRead + Unpin + Send + 'static> Stream for Limited<T> {
     type Item = Result<Bytes, io::Error>;
 
@@ -71,5 +84,15 @@ impl<T: AsyncRead + Unpin + Send + 'static> Stream for Limited<T> {
             }
             Poll::Pending => Poll::Pending,
         }
+    }
+}
+
+#[cfg(feature = "sync")]
+impl<T> Read for Limited<T>
+where
+    T: Read,
+{
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize, io::Error> {
+        self.io.read(buf)
     }
 }
