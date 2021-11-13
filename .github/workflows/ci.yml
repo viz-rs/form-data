@@ -22,14 +22,16 @@ jobs:
 
       - uses: actions/checkout@v2
 
-      - uses: actions-rs/cargo@v1
+      - name: Async Feature 
+        uses: actions-rs/cargo@v1
         env:
           RUST_LOG: trace
         with:
           command: test
           args: --test form-data --test hyper-body
 
-      - uses: actions-rs/cargo@v1
+      - name: Sync Feature 
+        uses: actions-rs/cargo@v1
         env:
           RUST_LOG: trace
         with:
