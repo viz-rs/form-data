@@ -13,14 +13,14 @@ jobs:
           - nightly
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v2
+
       - name: Install Rust (${{ matrix.rust }})
         uses: actions-rs/toolchain@v1
         with:
           toolchain: ${{ matrix.rust }}
           profile: minimal
           override: true
-
-      - uses: actions/checkout@v2
 
       - name: Async Feature 
         uses: actions-rs/cargo@v1
