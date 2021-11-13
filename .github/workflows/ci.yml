@@ -22,18 +22,10 @@ jobs:
           profile: minimal
           override: true
 
-      - name: Async Feature 
+      - name: Async/Sync Feature 
         uses: actions-rs/cargo@v1
         env:
           RUST_LOG: trace
-        with:
-          command: test
-          args: --test form-data --test hyper-body
-
-      - name: Sync Feature 
-        uses: actions-rs/cargo@v1
-        env:
-          RUST_LOG: trace
-        with:
-          command: test
-          args: --test tiny-body --no-default-features --features="sync"
+        run: |
+          cargo test --test form-data --test hyper-body
+          cargo test --test tiny-body --no-default-features --features="sync"
