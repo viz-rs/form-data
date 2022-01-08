@@ -39,7 +39,7 @@ futures-util = { version = "0.3", default-features = false, features = ["io"], o
 [dev-dependencies]
 rand = "0.8"
 async-fs = "1.5"
-tempfile = "3.2"
+tempfile = "3.3"
 hyper = { version = "0.14", features = ["stream", "server", "http1", "tcp"] }
 tokio = { version = "1.14", default-features = false, features = ["macros", "rt-multi-thread"] }
 tracing-subscriber = { version="0.3", features = ["env-filter"] }
