@@ -44,7 +44,7 @@ hyper = { version = "0.14", features = ["stream", "server", "http1", "tcp"] }
 tokio = { version = "1.17", default-features = false, features = ["macros", "rt-multi-thread"] }
 tracing-subscriber = { version="0.3", features = ["env-filter"] }
 warp = "0.3"
-tiny_http = "0.10.0"
+tiny_http = "0.11.0"
 
 [[example]]
 name = "hyper"
