@@ -1,6 +1,6 @@
 [package]
 name = "form-data"
-version = "0.3.2"
+version = "0.3.3"
 authors = ["Fangdun Cai <cfddream@gmail.com>"]
 description = "AsyncRead/AsyncWrite/Stream `multipart/form-data`"
 homepage = "https://github.com/viz-rs/form-data"
@@ -15,7 +15,7 @@ include = [
   "LICENSE-APACHE",
   "LICENSE-MIT",
   "README.md",
-  "src/*.rs"
+  "src/*.rs",
 ]
 
 [features]
@@ -28,23 +28,28 @@ sync = []
 anyhow = "1.0"
 bytes = "1.1"
 http = "0.2"
-httparse = "1.6"
+httparse = "1.7"
 mime = "0.3"
 memchr = "2.4"
 tracing = "0.1"
 thiserror = "1"
 serde = { version = "1.0", features = ["derive"] }
-futures-util = { version = "0.3", default-features = false, features = ["io"], optional = true }
+futures-util = { version = "0.3", default-features = false, features = [
+  "io",
+], optional = true }
 
 [dev-dependencies]
 rand = "0.8"
 async-fs = "1.5"
 tempfile = "3.3"
 hyper = { version = "0.14", features = ["stream", "server", "http1", "tcp"] }
-tokio = { version = "1.17", default-features = false, features = ["macros", "rt-multi-thread"] }
-tracing-subscriber = { version="0.3", features = ["env-filter"] }
+tokio = { version = "1.13", default-features = false, features = [
+  "macros",
+  "rt-multi-thread",
+] }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 warp = "0.3"
-tiny_http = "0.10.0"
+tiny_http = "0.11"
 
 [[example]]
 name = "hyper"
