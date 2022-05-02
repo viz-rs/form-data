@@ -43,7 +43,7 @@ rand = "0.8"
 async-fs = "1.5"
 tempfile = "3.3"
 hyper = { version = "0.14", features = ["stream", "server", "http1", "tcp"] }
-tokio = { version = "1.13", default-features = false, features = [
+tokio = { version = "1.18", default-features = false, features = [
   "macros",
   "rt-multi-thread",
 ] }
