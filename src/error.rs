@@ -1,12 +1,15 @@
-use std::io;
 use thiserror::Error;
 
 /// Form-data Error
 #[derive(Debug, Error)]
-pub enum FormDataError {
+pub enum Error {
     /// IO Error
     #[error(transparent)]
-    Stream(#[from] io::Error),
+    Stream(#[from] std::io::Error),
+
+    /// Box Error
+    #[error(transparent)]
+    BoxError(#[from] Box<dyn std::error::Error + Send + Sync>),
 
     /// Invalid part header
     #[error("invalid part header")]
@@ -43,4 +46,8 @@ pub enum FormDataError {
     /// Field name is too long
     #[error("field name is too long, limit to `{0}`")]
     FieldNameTooLong(usize),
+
+    /// Try Lock Error
+    #[error("`{0}`")]
+    TryLockError(String),
 }

@@ -31,7 +31,9 @@ pub use state::*;
 
 pub use limits::Limits;
 
-pub use error::FormDataError;
+pub use error::Error;
+
+pub(crate) type Result<T, E = Error> = std::result::Result<T, E>;
 
 #[cfg(feature = "async")]
 mod r#async;

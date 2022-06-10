@@ -39,9 +39,9 @@ use hyper::{
 
 use async_fs::File;
 
-use form_data::FormData;
+use form_data::{Error, FormData};
 
-async fn hello(size: usize, req: Request<Body>) -> Result<Response<Body>> {
+async fn hello(size: usize, req: Request<Body>) -> Result<Response<Body>, Error> {
     let dir = tempdir()?;
     let mut txt = String::new();
 

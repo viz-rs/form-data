@@ -1,4 +1,3 @@
-//! tiny-http
 //!
 //! ```
 //! RUST_LOG=trace cargo test --test tiny-body --no-default-features --features="sync" -- --nocapture
@@ -117,7 +116,9 @@ fn tiny_body() -> Result<()> {
     }
 
     let state = form.state();
-    let state = state.try_lock().map_err(|e| anyhow!(e.to_string()))?;
+    let state = state
+        .try_lock()
+        .map_err(|e| Error::TryLockError(e.to_string()))?;
 
     assert_eq!(state.eof(), true);
     assert_eq!(state.total(), 6);

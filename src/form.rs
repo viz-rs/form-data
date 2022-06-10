@@ -1,8 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use anyhow::{anyhow, Result};
-
-use crate::{Limits, State};
+use crate::{Error, Limits, Result, State};
 
 /// FormData
 pub struct FormData<T> {
@@ -37,7 +35,7 @@ impl<T> FormData<T> {
     pub fn set_max_buf_size(&self, max: usize) -> Result<()> {
         self.state
             .try_lock()
-            .map_err(|e| anyhow!(e.to_string()))?
+            .map_err(|e| Error::TryLockError(e.to_string()))?
             .limits_mut()
             .buffer_size = max;
 

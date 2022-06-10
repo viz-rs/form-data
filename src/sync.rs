@@ -1,23 +1,22 @@
 use std::{
     fs::File,
-    io::{Error, ErrorKind, Read, Write},
+    io::{Error as IoError, ErrorKind, Read, Write},
 };
 
-use anyhow::{anyhow, Result};
 use bytes::{Bytes, BytesMut};
 use http::header::{CONTENT_DISPOSITION, CONTENT_TYPE};
 use tracing::trace;
 
 use crate::{
     utils::{parse_content_disposition, parse_content_type, parse_part_headers},
-    Field, Flag, FormData, FormDataError, State,
+    Error, Field, Flag, FormData, Result, State,
 };
 
 impl<T> Read for State<T>
 where
     T: Read,
 {
-    fn read(&mut self, buf: &mut [u8]) -> Result<usize, Error> {
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize, IoError> {
         self.io_mut().read(buf)
     }
 }
@@ -71,7 +70,7 @@ where
                 Ok(s) => {
                     let l = s as u64;
                     if let Some(max) = self.limits.checked_stream_size(self.length + l) {
-                        return Some(Err(FormDataError::PayloadTooLarge(max).into()));
+                        return Some(Err(Error::PayloadTooLarge(max)));
                     }
 
                     self.buffer.extend_from_slice(&b.split_to(s));
@@ -93,11 +92,11 @@ impl<T> Read for Field<T>
 where
     T: Read,
 {
-    fn read(&mut self, mut buf: &mut [u8]) -> Result<usize, Error> {
+    fn read(&mut self, mut buf: &mut [u8]) -> Result<usize, IoError> {
         match self.next() {
             None => Ok(0),
             Some(Ok(b)) => buf.write(&b),
-            Some(Err(e)) => Err(Error::new(ErrorKind::Other, e)),
+            Some(Err(e)) => Err(IoError::new(ErrorKind::Other, e)),
         }
     }
 }
@@ -159,7 +158,10 @@ where
         trace!("polling {} {}", self.index, self.state.is_some());
 
         let state = self.state.clone()?;
-        let mut state = state.try_lock().map_err(|e| anyhow!(e.to_string())).ok()?;
+        let mut state = state
+            .try_lock()
+            .map_err(|e| Error::TryLockError(e.to_string()))
+            .ok()?;
         let is_file = self.filename.is_some();
 
         match state.next().and_then(Result::ok) {
@@ -173,10 +175,10 @@ where
 
                 if is_file {
                     if let Some(max) = state.limits.checked_file_size(self.length + l) {
-                        return Some(Err(FormDataError::FileTooLarge(max).into()));
+                        return Some(Err(Error::FileTooLarge(max)));
                     }
                 } else if let Some(max) = state.limits.checked_field_size(self.length + l) {
-                    return Some(Err(FormDataError::FieldTooLarge(max).into()));
+                    return Some(Err(Error::FieldTooLarge(max)));
                 }
 
                 self.length += l;
@@ -198,7 +200,7 @@ where
         let mut state = self
             .state
             .try_lock()
-            .map_err(|e| anyhow!(e.to_string()))
+            .map_err(|e| Error::TryLockError(e.to_string()))
             .ok()?;
 
         match state.next()? {
@@ -208,13 +210,13 @@ where
 
                 // too many parts
                 if let Some(max) = state.limits.checked_parts(state.total + 1) {
-                    return Some(Err(FormDataError::PartsTooMany(max).into()));
+                    return Some(Err(Error::PartsTooMany(max)));
                 }
 
                 // invalid part header
                 let mut headers = match parse_part_headers(&buf) {
                     Ok(h) => h,
-                    Err(_) => return Some(Err(FormDataError::InvalidHeader.into())),
+                    Err(_) => return Some(Err(Error::InvalidHeader)),
                 };
 
                 // invalid content disposition
@@ -223,24 +225,24 @@ where
                     .and_then(|v| parse_content_disposition(v.as_bytes()).ok())
                 {
                     Some(n) => n,
-                    None => return Some(Err(FormDataError::InvalidContentDisposition.into())),
+                    None => return Some(Err(Error::InvalidContentDisposition)),
                 };
 
                 // field name is too long
                 if let Some(max) = state.limits.checked_field_name_size(name.len()) {
-                    return Some(Err(FormDataError::FieldNameTooLong(max).into()));
+                    return Some(Err(Error::FieldNameTooLong(max).into()));
                 }
 
                 if filename.is_some() {
                     // files too many
                     if let Some(max) = state.limits.checked_files(state.files + 1) {
-                        return Some(Err(FormDataError::FilesTooMany(max).into()));
+                        return Some(Err(Error::FilesTooMany(max)));
                     }
                     state.files += 1;
                 } else {
                     // fields too many
                     if let Some(max) = state.limits.checked_fields(state.fields + 1) {
-                        return Some(Err(FormDataError::FieldsTooMany(max).into()));
+                        return Some(Err(Error::FieldsTooMany(max)));
                     }
                     state.fields += 1;
                 }

@@ -1,11 +1,11 @@
 use std::{
+    error::Error as StdError,
     fs::File,
     io::Write,
     pin::Pin,
     task::{Context, Poll},
 };
 
-use anyhow::{anyhow, Error, Result};
 use bytes::{Bytes, BytesMut};
 use futures_util::{
     io::{self, AsyncRead, AsyncWrite, AsyncWriteExt},
@@ -16,13 +16,14 @@ use tracing::trace;
 
 use crate::{
     utils::{parse_content_disposition, parse_content_type, parse_part_headers},
-    Field, Flag, FormData, FormDataError, State,
+    Error, Field, Flag, FormData, Result, State,
 };
 
-impl<T, E> Stream for State<T>
+impl<T, B, E> Stream for State<T>
 where
-    T: Stream<Item = Result<Bytes, E>> + Unpin,
-    E: Into<Error>,
+    T: Stream<Item = Result<B, E>> + Unpin,
+    B: Into<Bytes>,
+    E: Into<Box<dyn StdError + Send + Sync>>,
 {
     type Item = Result<Bytes>;
 
@@ -66,17 +67,20 @@ where
                 Poll::Pending => {
                     return Poll::Pending;
                 }
-                Poll::Ready(Some(Err(e))) => return Poll::Ready(Some(Err(e.into()))),
                 Poll::Ready(Some(Ok(b))) => {
+                    let b = b.into();
                     let l = b.len() as u64;
 
                     if let Some(max) = self.limits.checked_stream_size(self.length + l) {
-                        return Poll::Ready(Some(Err(FormDataError::PayloadTooLarge(max).into())));
+                        return Poll::Ready(Some(Err(Error::PayloadTooLarge(max))));
                     }
 
                     self.buffer.extend_from_slice(&b);
                     self.length += l;
                     l
+                }
+                Poll::Ready(Some(Err(e))) => {
+                    return Poll::Ready(Some(Err(Error::BoxError(e.into()))))
                 }
                 Poll::Ready(None) => 0,
             };
@@ -90,10 +94,11 @@ where
     }
 }
 
-impl<T, E> Field<T>
+impl<T, B, E> Field<T>
 where
-    T: Stream<Item = Result<Bytes, E>> + Unpin,
-    E: Into<Error>,
+    T: Stream<Item = Result<B, E>> + Unpin,
+    B: Into<Bytes>,
+    E: Into<Box<dyn StdError + Send + Sync>>,
 {
     /// Reads field data to bytes.
     pub async fn bytes(&mut self) -> Result<Bytes> {
@@ -144,10 +149,11 @@ where
 }
 
 /// Reads payload data from part, then puts them to anywhere
-impl<T, E> AsyncRead for Field<T>
+impl<T, B, E> AsyncRead for Field<T>
 where
-    T: Stream<Item = Result<Bytes, E>> + Unpin,
-    E: Into<Error>,
+    T: Stream<Item = Result<B, E>> + Unpin,
+    B: Into<Bytes>,
+    E: Into<Box<dyn StdError + Send + Sync>>,
 {
     fn poll_read(
         self: Pin<&mut Self>,
@@ -164,10 +170,11 @@ where
 }
 
 /// Reads payload data from part, then yields them
-impl<T, E> Stream for Field<T>
+impl<T, B, E> Stream for Field<T>
 where
-    T: Stream<Item = Result<Bytes, E>> + Unpin,
-    E: Into<Error>,
+    T: Stream<Item = Result<B, E>> + Unpin,
+    B: Into<Bytes>,
+    E: Into<Box<dyn StdError + Send + Sync>>,
 {
     type Item = Result<Bytes>;
 
@@ -180,7 +187,9 @@ where
         };
 
         let is_file = self.filename.is_some();
-        let mut state = state.try_lock().map_err(|e| anyhow!(e.to_string()))?;
+        let mut state = state
+            .try_lock()
+            .map_err(|e| Error::TryLockError(e.to_string()))?;
 
         match Pin::new(&mut *state).poll_next(cx)? {
             Poll::Pending => Poll::Pending,
@@ -198,10 +207,10 @@ where
 
                     if is_file {
                         if let Some(max) = state.limits.checked_file_size(self.length + l) {
-                            return Poll::Ready(Some(Err(FormDataError::FileTooLarge(max).into())));
+                            return Poll::Ready(Some(Err(Error::FileTooLarge(max))));
                         }
                     } else if let Some(max) = state.limits.checked_field_size(self.length + l) {
-                        return Poll::Ready(Some(Err(FormDataError::FieldTooLarge(max).into())));
+                        return Poll::Ready(Some(Err(Error::FieldTooLarge(max))));
                     }
 
                     self.length += l;
@@ -214,15 +223,19 @@ where
 }
 
 /// Reads form-data from request payload body, then yields `Field`
-impl<T, E> Stream for FormData<T>
+impl<T, B, E> Stream for FormData<T>
 where
-    T: Stream<Item = Result<Bytes, E>> + Unpin,
-    E: Into<Error>,
+    T: Stream<Item = Result<B, E>> + Unpin,
+    B: Into<Bytes>,
+    E: Into<Box<dyn StdError + Send + Sync>>,
 {
     type Item = Result<Field<T>>;
 
     fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
-        let mut state = self.state.try_lock().map_err(|e| anyhow!(e.to_string()))?;
+        let mut state = self
+            .state
+            .try_lock()
+            .map_err(|e| Error::TryLockError(e.to_string()))?;
 
         if state.waker().is_some() {
             return Poll::Pending;
@@ -240,15 +253,13 @@ where
 
                     // too many parts
                     if let Some(max) = state.limits.checked_parts(state.total + 1) {
-                        return Poll::Ready(Some(Err(FormDataError::PartsTooMany(max).into())));
+                        return Poll::Ready(Some(Err(Error::PartsTooMany(max))));
                     }
 
                     // invalid part header
                     let mut headers = match parse_part_headers(&buf) {
                         Ok(h) => h,
-                        Err(_) => {
-                            return Poll::Ready(Some(Err(FormDataError::InvalidHeader.into())))
-                        }
+                        Err(_) => return Poll::Ready(Some(Err(Error::InvalidHeader))),
                     };
 
                     // invalid content disposition
@@ -257,30 +268,24 @@ where
                         .and_then(|v| parse_content_disposition(v.as_bytes()).ok())
                     {
                         Some(n) => n,
-                        None => {
-                            return Poll::Ready(Some(Err(
-                                FormDataError::InvalidContentDisposition.into()
-                            )))
-                        }
+                        None => return Poll::Ready(Some(Err(Error::InvalidContentDisposition))),
                     };
 
                     // field name is too long
                     if let Some(max) = state.limits.checked_field_name_size(name.len()) {
-                        return Poll::Ready(Some(Err(FormDataError::FieldNameTooLong(max).into())));
+                        return Poll::Ready(Some(Err(Error::FieldNameTooLong(max))));
                     }
 
                     if filename.is_some() {
                         // files too many
                         if let Some(max) = state.limits.checked_files(state.files + 1) {
-                            return Poll::Ready(Some(Err(FormDataError::FilesTooMany(max).into())));
+                            return Poll::Ready(Some(Err(Error::FilesTooMany(max))));
                         }
                         state.files += 1;
                     } else {
                         // fields too many
                         if let Some(max) = state.limits.checked_fields(state.fields + 1) {
-                            return Poll::Ready(Some(
-                                Err(FormDataError::FieldsTooMany(max).into()),
-                            ));
+                            return Poll::Ready(Some(Err(Error::FieldsTooMany(max))));
                         }
                         state.fields += 1;
                     }

@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use async_fs::File;
 use bytes::BytesMut;
 use hyper::Body;
@@ -126,7 +126,9 @@ async fn hyper_body() -> Result<()> {
     }
 
     let state = form.state();
-    let state = state.try_lock().map_err(|e| anyhow!(e.to_string()))?;
+    let state = state
+        .try_lock()
+        .map_err(|e| Error::TryLockError(e.to_string()))?;
 
     assert_eq!(state.eof(), true);
     assert_eq!(state.total(), 5);
@@ -193,7 +195,9 @@ async fn stream_iter() -> Result<()> {
     }
 
     let state = form.state();
-    let state = state.try_lock().map_err(|e| anyhow!(e.to_string()))?;
+    let state = state
+        .try_lock()
+        .map_err(|e| Error::TryLockError(e.to_string()))?;
 
     assert_eq!(state.eof(), true);
     assert_eq!(state.total(), 2);

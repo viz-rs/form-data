@@ -1,7 +1,7 @@
-use anyhow::{anyhow, Result};
-
 use http::header::{HeaderMap, HeaderName, HeaderValue};
 use httparse::{parse_headers, Status, EMPTY_HEADER};
+
+use crate::{Error, Result};
 
 pub(crate) const MAX_HEADERS: usize = 8 * 2;
 pub(crate) const DASHES: [u8; 2] = [b'-', b'-']; // `--`
@@ -26,28 +26,28 @@ pub(crate) fn parse_part_headers(bytes: &[u8]) -> Result<HeaderMap> {
             let mut header_map = HeaderMap::with_capacity(len);
             for h in hs.iter().take(len) {
                 header_map.append(
-                    HeaderName::from_bytes(h.name.as_bytes())?,
-                    HeaderValue::from_bytes(h.value)?,
+                    HeaderName::from_bytes(h.name.as_bytes()).map_err(|_| Error::InvalidHeader)?,
+                    HeaderValue::from_bytes(h.value).map_err(|_| Error::InvalidHeader)?,
                 );
             }
             Ok(header_map)
         }
-        Ok(Status::Partial) => Err(anyhow!("invaild headers")),
-        Err(e) => Err(e.into()),
+        Ok(Status::Partial) => Err(Error::InvalidHeader),
+        Err(_) => Err(Error::InvalidHeader),
     }
 }
 
 #[allow(clippy::many_single_char_names)]
 pub(crate) fn parse_content_disposition(hv: &[u8]) -> Result<(String, Option<String>)> {
     if hv.len() < 20 {
-        return Err(anyhow!("invalid content disposition"));
+        return Err(Error::InvalidContentDisposition);
     }
 
     let mut i = 9;
     let form_data = &hv[0..i];
 
     if form_data != FORM_DATA {
-        return Err(anyhow!("invalid content disposition"));
+        return Err(Error::InvalidContentDisposition);
     }
 
     let mut j = i;
@@ -131,5 +131,5 @@ pub(crate) fn parse_content_disposition(hv: &[u8]) -> Result<(String, Option<Str
         ));
     }
 
-    Err(anyhow!("invalid content disposition"))
+    Err(Error::InvalidContentDisposition)
 }

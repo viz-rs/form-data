@@ -1,16 +1,42 @@
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use async_fs::File;
 
 use bytes::BytesMut;
 use http::HeaderMap;
 
-use futures_util::TryStreamExt;
+use futures_util::stream::TryStreamExt;
 
 use form_data::*;
 
 mod lib;
 
 use lib::Limited;
+
+#[tokio::test]
+
+async fn from_bytes_stream() -> Result<()> {
+    let body = Limited::random(File::open("tests/fixtures/rfc7578-example.txt").await?);
+    let mut form = FormData::new(body, "AaB03x");
+
+    while let Some(mut field) = form.try_next().await? {
+        let mut buffer = BytesMut::new();
+        while let Some(buf) = field.try_next().await? {
+            buffer.extend_from_slice(&buf);
+        }
+        assert_eq!(buffer.len(), "Joe owes =E2=82=AC100.".len());
+    }
+
+    let state = form.state();
+    let state = state
+        .try_lock()
+        .map_err(|e| Error::TryLockError(e.to_string()))?;
+
+    assert!(state.eof());
+    assert_eq!(state.total(), 1);
+    assert_eq!(state.len(), 178);
+
+    Ok(())
+}
 
 #[tokio::test]
 async fn empty() -> Result<()> {
@@ -27,7 +53,9 @@ async fn empty() -> Result<()> {
     }
 
     let state = form.state();
-    let state = state.try_lock().map_err(|e| anyhow!(e.to_string()))?;
+    let state = state
+        .try_lock()
+        .map_err(|e| Error::TryLockError(e.to_string()))?;
 
     assert!(state.eof());
     assert_eq!(state.total(), 0);
@@ -72,7 +100,9 @@ async fn filename_with_space() -> Result<()> {
     }
 
     let state = form.state();
-    let state = state.try_lock().map_err(|e| anyhow!(e.to_string()))?;
+    let state = state
+        .try_lock()
+        .map_err(|e| Error::TryLockError(e.to_string()))?;
 
     assert!(state.eof());
     assert_eq!(state.total(), 2);
@@ -158,7 +188,9 @@ async fn many() -> Result<()> {
     }
 
     let state = form.state();
-    let state = state.try_lock().map_err(|e| anyhow!(e.to_string()))?;
+    let state = state
+        .try_lock()
+        .map_err(|e| Error::TryLockError(e.to_string()))?;
 
     assert!(state.eof());
     assert_eq!(state.total(), 7);
@@ -244,7 +276,9 @@ async fn many_noend() -> Result<()> {
     }
 
     let state = form.state();
-    let state = state.try_lock().map_err(|e| anyhow!(e.to_string()))?;
+    let state = state
+        .try_lock()
+        .map_err(|e| Error::TryLockError(e.to_string()))?;
 
     assert!(state.eof());
     assert_eq!(state.total(), 7);
@@ -291,7 +325,9 @@ async fn headers() -> Result<()> {
     }
 
     let state = form.state();
-    let state = state.try_lock().map_err(|e| anyhow!(e.to_string()))?;
+    let state = state
+        .try_lock()
+        .map_err(|e| Error::TryLockError(e.to_string()))?;
 
     assert!(state.eof());
     assert_eq!(state.total(), 1);
@@ -377,7 +413,9 @@ async fn sample() -> Result<()> {
     }
 
     let state = form.state();
-    let state = state.try_lock().map_err(|e| anyhow!(e.to_string()))?;
+    let state = state
+        .try_lock()
+        .map_err(|e| Error::TryLockError(e.to_string()))?;
 
     assert!(state.eof());
     assert_eq!(state.total(), 5);
@@ -410,7 +448,9 @@ async fn sample_lf() -> Result<()> {
     }
 
     let state = form.state();
-    let state = state.try_lock().map_err(|e| anyhow!(e.to_string()))?;
+    let state = state
+        .try_lock()
+        .map_err(|e| Error::TryLockError(e.to_string()))?;
 
     assert!(state.eof());
     assert_eq!(state.total(), 0);
@@ -482,7 +522,9 @@ async fn graphql_random() -> Result<()> {
     }
 
     let state = form.state();
-    let state = state.try_lock().map_err(|e| anyhow!(e.to_string()))?;
+    let state = state
+        .try_lock()
+        .map_err(|e| Error::TryLockError(e.to_string()))?;
 
     assert!(state.eof());
     assert_eq!(state.total(), 5);
@@ -555,7 +597,9 @@ async fn graphql_1024() -> Result<()> {
     }
 
     let state = form.state();
-    let state = state.try_lock().map_err(|e| anyhow!(e.to_string()))?;
+    let state = state
+        .try_lock()
+        .map_err(|e| Error::TryLockError(e.to_string()))?;
 
     assert!(state.eof());
     assert_eq!(state.total(), 5);
@@ -627,7 +671,9 @@ async fn graphql_1033() -> Result<()> {
     }
 
     let state = form.state();
-    let state = state.try_lock().map_err(|e| anyhow!(e.to_string()))?;
+    let state = state
+        .try_lock()
+        .map_err(|e| Error::TryLockError(e.to_string()))?;
 
     assert!(state.eof());
     assert_eq!(state.total(), 5);
