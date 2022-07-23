@@ -1,6 +1,8 @@
 use std::fmt;
 
 use anyhow::Result;
+
+#[cfg(feature = "async")]
 use bytes::{Bytes, BytesMut};
 
 #[cfg(feature = "async")]

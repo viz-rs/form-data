@@ -130,7 +130,7 @@ async fn hyper_body() -> Result<()> {
         .try_lock()
         .map_err(|e| Error::TryLockError(e.to_string()))?;
 
-    assert_eq!(state.eof(), true);
+    assert!(state.eof());
     assert_eq!(state.total(), 5);
     assert_eq!(state.len(), 1027);
 
@@ -199,7 +199,7 @@ async fn stream_iter() -> Result<()> {
         .try_lock()
         .map_err(|e| Error::TryLockError(e.to_string()))?;
 
-    assert_eq!(state.eof(), true);
+    assert!(state.eof());
     assert_eq!(state.total(), 2);
     assert_eq!(state.len(), 211);
 

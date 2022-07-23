@@ -304,18 +304,15 @@ async fn headers() -> Result<()> {
             buffer.extend_from_slice(&buf);
         }
 
-        match field.index {
-            0 => {
-                assert_eq!(field.name, "operations");
-                assert_eq!(field.filename, Some("graphql.json".into()));
-                assert_eq!(field.content_type, Some(mime::APPLICATION_JSON));
-                assert_eq!(field.length, 13);
-                let mut headers = HeaderMap::new();
-                headers.append(http::header::CONTENT_LENGTH, 13.into());
-                assert_eq!(field.headers, Some(headers));
-                assert_eq!(buffer, "{\"query\": \"\"}");
-            }
-            _ => {}
+        if field.index == 0 {
+            assert_eq!(field.name, "operations");
+            assert_eq!(field.filename, Some("graphql.json".into()));
+            assert_eq!(field.content_type, Some(mime::APPLICATION_JSON));
+            assert_eq!(field.length, 13);
+            let mut headers = HeaderMap::new();
+            headers.append(http::header::CONTENT_LENGTH, 13.into());
+            assert_eq!(field.headers, Some(headers));
+            assert_eq!(buffer, "{\"query\": \"\"}");
         }
 
         assert_eq!(field.length, buffer.len());

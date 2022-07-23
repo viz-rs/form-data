@@ -3,14 +3,11 @@
 //! RUST_LOG=trace cargo test --test tiny-body --no-default-features --features="sync" -- --nocapture
 //! ```
 
-use std::{
-    fs::File,
-    io::{self, Read, Write},
-    str::FromStr,
-};
+#![cfg(feature = "sync")]
 
-use anyhow::{anyhow, Result};
-use bytes::BytesMut;
+use std::{fs::File, io::Read, str::FromStr};
+
+use anyhow::Result;
 
 use form_data::*;
 
@@ -18,7 +15,6 @@ mod lib;
 
 use lib::{tracing_init, Limited};
 
-#[cfg(feature = "sync")]
 #[test]
 fn tiny_body() -> Result<()> {
     tracing_init()?;
