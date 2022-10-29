@@ -8,12 +8,12 @@ use futures_util::stream::TryStreamExt;
 
 use form_data::*;
 
+#[path = "./lib/mod.rs"]
 mod lib;
 
 use lib::Limited;
 
 #[tokio::test]
-
 async fn from_bytes_stream() -> Result<()> {
     let body = Limited::random(File::open("tests/fixtures/rfc7578-example.txt").await?);
     let mut form = FormData::new(body, "AaB03x");

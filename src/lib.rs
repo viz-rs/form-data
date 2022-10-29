@@ -112,7 +112,7 @@
 
 #![forbid(unsafe_code)]
 #![deny(nonstandard_style)]
-#![warn(missing_docs, rustdoc::missing_doc_code_examples, unreachable_pub)]
+#![warn(missing_docs, unreachable_pub)]
 
 mod error;
 mod field;
@@ -135,9 +135,5 @@ pub(crate) type Result<T, E = Error> = std::result::Result<T, E>;
 
 #[cfg(all(feature = "async", not(feature = "sync")))]
 mod r#async;
-#[cfg(all(feature = "async", not(feature = "sync")))]
-pub use r#async::*;
 #[cfg(all(feature = "sync", not(feature = "async")))]
 mod sync;
-#[cfg(all(feature = "sync", not(feature = "async")))]
-pub use sync::*;

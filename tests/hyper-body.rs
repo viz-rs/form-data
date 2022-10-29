@@ -11,6 +11,7 @@ use futures_util::{
 
 use form_data::*;
 
+#[path = "./lib/mod.rs"]
 mod lib;
 
 use lib::{tracing_init, Limited};

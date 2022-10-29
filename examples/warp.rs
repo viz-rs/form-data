@@ -60,12 +60,12 @@ async fn form(
             }
 
             tracing::info!("file {} {}", name, bytes);
-            txt.push_str(&format!("file {} {}\r\n", name, bytes));
+            txt.push_str(&format!("file {name} {bytes}\r\n"));
         } else {
             let buffer = field.bytes().await?;
             bytes = buffer.len() as u64;
             tracing::info!("text {} {}", name, bytes);
-            txt.push_str(&format!("text {} {}\r\n", name, bytes));
+            txt.push_str(&format!("text {name} {bytes}\r\n"));
         }
 
         tracing::info!("{:?}", field);
