@@ -40,13 +40,13 @@ futures-util = { version = "0.3", default-features = false, features = [
 [dev-dependencies]
 anyhow = "1.0"
 rand = "0.8"
-async-fs = "1.5"
+async-fs = "1.6"
 tempfile = "3.3"
-hyper = { version = "0.14", features = ["stream", "server", "http1", "tcp"] }
-tokio = { version = "1.0", default-features = false, features = [
-  "macros",
-  "rt-multi-thread",
-] }
+hyper = { version = "1.0.0-rc.1", features = ["server", "http1"] }
+http-body = "1.0.0-rc.1"
+http-body-util = "0.1.0-rc.1"
+tokio = { version = "1.0", features = ["macros", "rt-multi-thread"] }
+tokio-util = { version = "0.7.4", features = ["io"] }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 warp = "0.3"
 tiny_http = "0.11"
@@ -55,9 +55,9 @@ tiny_http = "0.11"
 name = "hyper"
 path = "examples/hyper.rs"
 
-[[example]]
-name = "warp"
-path = "examples/warp.rs"
+#[[example]]
+#name = "warp"
+#path = "examples/warp.rs"
 
 [[example]]
 name = "tiny_http"

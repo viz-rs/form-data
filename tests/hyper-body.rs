@@ -1,13 +1,13 @@
 use anyhow::Result;
 use async_fs::File;
 use bytes::BytesMut;
-use hyper::Body;
 use tempfile::tempdir;
 
 use futures_util::{
     io::{self, AsyncReadExt, AsyncWriteExt},
     stream::{self, TryStreamExt},
 };
+use http_body_util::StreamBody;
 
 use form_data::*;
 
@@ -24,7 +24,7 @@ async fn hyper_body() -> Result<()> {
     let stream = Limited::random_with(payload, 256);
     let limit = stream.limit();
 
-    let body = Body::wrap_stream(stream);
+    let body = StreamBody::new(stream);
     let mut form = FormData::new(body, "------------------------627436eaefdbc285");
     form.set_max_buf_size(limit)?;
 
@@ -159,7 +159,7 @@ async fn stream_iter() -> Result<()> {
         Ok("--00252461d3ab8ff5c25834e0bffd6f70"),
         Ok("--"),
     ];
-    let body = hyper::Body::wrap_stream(stream::iter(chunks));
+    let body = StreamBody::new(stream::iter(chunks));
     let mut form = FormData::new(body, "00252461d3ab8ff5c25834e0bffd6f70");
 
     while let Some(mut field) = form.try_next().await? {

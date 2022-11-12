@@ -21,27 +21,28 @@
 
 #![deny(warnings)]
 
-use std::{convert::Infallible, env};
+use std::{env, net::SocketAddr};
 
 use anyhow::Result;
-use tempfile::tempdir;
-
+use async_fs::File;
+use bytes::Bytes;
 use futures_util::{
     io::{copy, AsyncWriteExt},
     stream::TryStreamExt,
 };
-
-use hyper::{
-    header,
-    service::{make_service_fn, service_fn},
-    Body, Request, Response, Server,
-};
-
-use async_fs::File;
+use http_body_util::Full;
+use hyper::{body::Incoming, header, server::conn::http1, service::service_fn, Request, Response};
+use tempfile::tempdir;
+use tokio::net::TcpListener;
 
 use form_data::{Error, FormData};
 
-async fn hello(size: usize, req: Request<Body>) -> Result<Response<Body>, Error> {
+#[path = "../tests/lib/mod.rs"]
+mod lib;
+
+use lib::IncomingBody;
+
+async fn hello(size: usize, req: Request<Incoming>) -> Result<Response<Full<Bytes>>, Error> {
     let dir = tempdir()?;
     let mut txt = String::new();
 
@@ -53,10 +54,10 @@ async fn hello(size: usize, req: Request<Body>) -> Result<Response<Body>, Error>
         .get(header::CONTENT_TYPE)
         .and_then(|val| val.to_str().ok())
         .and_then(|val| val.parse::<mime::Mime>().ok())
-        .unwrap();
+        .ok_or(Error::InvalidHeader)?;
 
     let mut form = FormData::new(
-        req.into_body(),
+        req.map(|body| IncomingBody::new(Some(body))).into_body(),
         m.get_param(mime::BOUNDARY).unwrap().as_str(),
     );
 
@@ -122,7 +123,7 @@ async fn hello(size: usize, req: Request<Body>) -> Result<Response<Body>, Error>
 
     dir.close()?;
 
-    Ok(Response::new(Body::from(txt)))
+    Ok(Response::new(Full::from(Into::<String>::into(txt))))
 }
 
 #[tokio::main]
@@ -141,24 +142,27 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // 8 * 2
     // 8
     let size = arg.split_off(7).parse::<usize>().unwrap_or(8) * 1024;
-
-    // For every connection, we must make a `Service` to handle all
-    // incoming HTTP requests on said connection.
-    let make_svc = make_service_fn(|_conn| {
-        // This is the `Service` that will handle the connection.
-        // `service_fn` is a helper to convert a function that
-        // returns a Response into a `Service`.
-        async move { Ok::<_, Infallible>(service_fn(move |req| hello(size, req))) }
-    });
-
-    let addr = ([127, 0, 0, 1], 3000).into();
-
-    let server = Server::bind(&addr).http1_max_buf_size(size).serve(make_svc);
+    let addr: SocketAddr = ([127, 0, 0, 1], 3000).into();
 
     println!("Listening on http://{addr}");
     println!("FormData max buffer size is {}KB", size / 1024);
 
-    server.await?;
+    let listener = TcpListener::bind(addr).await?;
 
-    Ok(())
+    loop {
+        let (stream, _) = listener.accept().await?;
+
+        tokio::task::spawn(async move {
+            if let Err(err) = http1::Builder::new()
+                .max_buf_size(size)
+                .serve_connection(
+                    stream,
+                    service_fn(|req: Request<Incoming>| hello(size, req)),
+                )
+                .await
+            {
+                println!("Error serving connection: {:?}", err);
+            }
+        });
+    }
 }

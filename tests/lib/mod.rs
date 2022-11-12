@@ -1,5 +1,9 @@
-mod limited;
+#[cfg(feature = "async")]
+mod incoming_body;
+#[cfg(feature = "async")]
+pub use incoming_body::IncomingBody;
 
+mod limited;
 pub use limited::Limited;
 
 #[allow(dead_code)]
