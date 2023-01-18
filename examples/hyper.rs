@@ -161,7 +161,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                 )
                 .await
             {
-                println!("Error serving connection: {:?}", err);
+                println!("Error serving connection: {err:?}");
             }
         });
     }
