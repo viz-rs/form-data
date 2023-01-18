@@ -29,7 +29,7 @@
 
 > **Note**: form-data's [main](https://github.com/viz-rs/form-data) branch is
 > currently preparing breaking changes. For the most recently *released* code,
-> look to the [0.4.x branch](https://github.com/viz-rs/viz/form-data/0.5.x).
+> look to the [0.4.x branch](https://github.com/viz-rs/viz/form-data/0.4.x).
 
 ## Features
 
