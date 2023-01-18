@@ -27,6 +27,10 @@
       alt="Twitter: @_fundon" /></a>
 </div>
 
+> **Note**: form-data's [main](https://github.com/viz-rs/form-data) branch is
+> currently preparing breaking changes. For the most recently *released* code,
+> look to the [0.4.x branch](https://github.com/viz-rs/viz/form-data/0.5.x).
+
 ## Features
 
 - **Stream**: `Form`, `Field`
@@ -83,29 +87,35 @@ Charlie file content.
 [tests/hyper-body.rs](hyper-body)
 
 ```rust
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use async_fs::File;
 use bytes::BytesMut;
-use hyper::Body;
 use tempfile::tempdir;
 
 use futures_util::{
     io::{self, AsyncReadExt, AsyncWriteExt},
-    stream::TryStreamExt,
+    stream::{self, TryStreamExt},
 };
+use http_body_util::StreamBody;
 
 use form_data::*;
 
-mod limited;
-use limited::Limited;
+#[path = "./lib/mod.rs"]
+mod lib;
+
+use lib::{tracing_init, Limited};
 
 #[tokio::test]
 async fn hyper_body() -> Result<()> {
+    tracing_init()?;
+
     let payload = File::open("tests/fixtures/graphql.txt").await?;
     let stream = Limited::random_with(payload, 256);
+    let limit = stream.limit();
 
-    let body = Body::wrap_stream(stream);
-    let mut form = FormData::new("------------------------627436eaefdbc285", body);
+    let body = StreamBody::new(stream);
+    let mut form = FormData::new(body, "------------------------627436eaefdbc285");
+    form.set_max_buf_size(limit)?;
 
     while let Some(mut field) = form.try_next().await? {
         assert!(!field.consumed());
@@ -124,11 +134,11 @@ async fn hyper_body() -> Result<()> {
                 }
 
                 assert_eq!(buffer, "[{ \"query\": \"mutation ($file: Upload!) { singleUpload(file: $file) { id } }\", \"variables\": { \"file\": null } }, { \"query\": \"mutation($files: [Upload!]!) { multipleUpload(files: $files) { id } }\", \"variables\": { \"files\": [null, null] } }]");
-                assert_eq!(field.length, buffer.len() as u64);
+                assert_eq!(field.length, buffer.len());
 
                 assert!(field.consumed());
 
-                log::info!("{:#?}", field);
+                tracing::info!("{:#?}", field);
             }
             1 => {
                 assert_eq!(field.name, "map");
@@ -139,14 +149,14 @@ async fn hyper_body() -> Result<()> {
                 let buffer = field.bytes().await?;
 
                 assert_eq!(buffer, "{ \"0\": [\"0.variables.file\"], \"1\": [\"1.variables.files.0\"], \"2\": [\"1.variables.files.1\"] }");
-                assert_eq!(field.length, buffer.len() as u64);
+                assert_eq!(field.length, buffer.len());
 
                 assert!(field.consumed());
 
-                log::info!("{:#?}", field);
+                tracing::info!("{:#?}", field);
             }
             2 => {
-                log::info!("{:#?}", field);
+                tracing::info!("{:#?}", field);
 
                 assert_eq!(field.name, "0");
                 assert_eq!(field.filename, Some("a.txt".into()));
@@ -182,10 +192,10 @@ async fn hyper_body() -> Result<()> {
                 let bytes = field.read_to_end(&mut buffer).await?;
 
                 assert_eq!(buffer, "Bravo file content.\r\n".as_bytes());
-                assert_eq!(field.length, bytes as u64);
-                assert_eq!(field.length, buffer.len() as u64);
+                assert_eq!(field.length, bytes);
+                assert_eq!(field.length, buffer.len());
 
-                log::info!("{:#?}", field);
+                tracing::info!("{:#?}", field);
             }
             4 => {
                 assert_eq!(field.name, "2");
@@ -196,21 +206,23 @@ async fn hyper_body() -> Result<()> {
                 let bytes = field.read_to_string(&mut string).await?;
 
                 assert_eq!(string, "Charlie file content.\r\n");
-                assert_eq!(field.length, bytes as u64);
-                assert_eq!(field.length, string.len() as u64);
+                assert_eq!(field.length, bytes);
+                assert_eq!(field.length, string.len());
 
-                log::info!("{:#?}", field);
+                tracing::info!("{:#?}", field);
             }
             _ => {}
         }
     }
 
     let state = form.state();
-    let state = state.try_lock().map_err(|e| anyhow!(e.to_string()))?;
+    let state = state
+        .try_lock()
+        .map_err(|e| Error::TryLockError(e.to_string()))?;
 
-    assert_eq!(state.eof(), true);
+    assert!(state.eof());
     assert_eq!(state.total(), 5);
-    assert_eq!(state.len(), 1029);
+    assert_eq!(state.len(), 1027);
 
     Ok(())
 }

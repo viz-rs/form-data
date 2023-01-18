@@ -74,12 +74,8 @@ impl Stream for IncomingBody {
             .0
             .as_mut()
             .map_or(Poll::Ready(None), |inner| {
-                match Pin::new(inner).poll_frame(cx).map_err(Into::into) {
-                    Poll::Ready(Some(Ok(f))) => match f.into_data() {
-                        Some(d) => Poll::Ready(Some(Ok(d))),
-                        None => Poll::Ready(None),
-                    },
-                    Poll::Ready(Some(Err(e))) => Poll::Ready(Some(Err(e))),
+                match Pin::new(inner).poll_frame(cx)? {
+                    Poll::Ready(Some(f)) => Poll::Ready(f.into_data().map(Ok).ok()),
                     Poll::Ready(None) => Poll::Ready(None),
                     Poll::Pending => Poll::Pending,
                 }
