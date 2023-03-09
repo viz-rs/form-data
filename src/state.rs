@@ -173,12 +173,11 @@ impl<T> State<T> {
                     self.flag = Flag::Next;
                     self.buffer.advance(self.delimiter.len());
                     return None;
-                } else {
-                    // prev part last data
-                    let buf = self.buffer.split_to(*n).freeze();
-                    *n = 0;
-                    return Some(buf);
                 }
+                // prev part last data
+                let buf = self.buffer.split_to(*n).freeze();
+                *n = 0;
+                return Some(buf);
             }
         }
 

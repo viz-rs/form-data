@@ -2,13 +2,13 @@ use std::sync::{Arc, Mutex};
 
 use crate::{Error, Limits, Result, State};
 
-/// FormData
+/// `FormData`
 pub struct FormData<T> {
     pub(crate) state: Arc<Mutex<State<T>>>,
 }
 
 impl<T> FormData<T> {
-    /// Creates new FormData with boundary.
+    /// Creates new `FormData` with boundary.
     pub fn new(t: T, boundary: &str) -> Self {
         Self {
             state: Arc::new(Mutex::new(State::new(
@@ -19,7 +19,7 @@ impl<T> FormData<T> {
         }
     }
 
-    /// Creates new FormData with boundary and limits.
+    /// Creates new `FormData` with boundary and limits.
     pub fn with_limits(t: T, boundary: &str, limits: Limits) -> Self {
         Self {
             state: Arc::new(Mutex::new(State::new(t, boundary.as_bytes(), limits))),

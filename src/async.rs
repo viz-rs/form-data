@@ -109,10 +109,10 @@ where
         Ok(bytes.freeze())
     }
 
-    /// Copys large buffer to AsyncRead, hyper can support large buffer,
+    /// Copys large buffer to `AsyncRead`, hyper can support large buffer,
     /// 8KB <= buffer <= 512KB, so if we want to handle large buffer.
     /// `Form::set_max_buf_size(512 * 1024);`
-    /// 3~4x performance improvement over the 8KB limitation of AsyncRead.
+    /// 3~4x performance improvement over the 8KB limitation of `AsyncRead`.
     pub async fn copy_to<W>(&mut self, writer: &mut W) -> Result<u64>
     where
         W: AsyncWrite + Send + Unpin + 'static,
@@ -129,7 +129,7 @@ where
     /// Copys large buffer to File, hyper can support large buffer,
     /// 8KB <= buffer <= 512KB, so if we want to handle large buffer.
     /// `Form::set_max_buf_size(512 * 1024);`
-    /// 4x+ performance improvement over the 8KB limitation of AsyncRead.
+    /// 4x+ performance improvement over the 8KB limitation of `AsyncRead`.
     pub async fn copy_to_file(&mut self, file: &mut File) -> Result<u64> {
         let mut n = 0;
         while let Some(buf) = self.try_next().await? {
@@ -257,18 +257,15 @@ where
                     }
 
                     // invalid part header
-                    let mut headers = match parse_part_headers(&buf) {
-                        Ok(h) => h,
-                        Err(_) => return Poll::Ready(Some(Err(Error::InvalidHeader))),
+                    let Ok(mut headers) = parse_part_headers(&buf) else {
+                        return Poll::Ready(Some(Err(Error::InvalidHeader)));
                     };
 
                     // invalid content disposition
-                    let (name, filename) = match headers
+                    let Some((name, filename)) = headers
                         .remove(CONTENT_DISPOSITION)
-                        .and_then(|v| parse_content_disposition(v.as_bytes()).ok())
-                    {
-                        Some(n) => n,
-                        None => return Poll::Ready(Some(Err(Error::InvalidContentDisposition))),
+                        .and_then(|v| parse_content_disposition(v.as_bytes()).ok()) else {
+                        return Poll::Ready(Some(Err(Error::InvalidContentDisposition)));
                     };
 
                     // field name is too long

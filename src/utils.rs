@@ -32,8 +32,7 @@ pub(crate) fn parse_part_headers(bytes: &[u8]) -> Result<HeaderMap> {
             }
             Ok(header_map)
         }
-        Ok(Status::Partial) => Err(Error::InvalidHeader),
-        Err(_) => Err(Error::InvalidHeader),
+        Ok(Status::Partial) | Err(_) => Err(Error::InvalidHeader),
     }
 }
 
