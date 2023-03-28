@@ -16,7 +16,7 @@ env:
 
 jobs:
   test:
-    name: cargo test (${{ matrix.os }})
+    name: Test (${{ matrix.os }})
     strategy:
       fail-fast: false
       matrix:
@@ -27,34 +27,29 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3
-      - name: Install Rust
-        # --no-self-update is necessary because the windows environment cannot self-update rustup.exe.
-        run: rustup update nightly --no-self-update && rustup default nightly
+      - uses: dtolnay/rust-toolchain@nightly
       - run: cargo test --all --verbose
 
   clippy:
-    name: cargo clippy
+    name: Clippy
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: Install Rust
-        run: rustup toolchain install nightly --component clippy && rustup default nightly
-      - run: cargo clippy --all-targets
+      - uses: dtolnay/rust-toolchain@clippy
+      - run: cargo clippy --tests -- -Dclippy::all -Dclippy::pedantic
 
   fmt:
-    name: cargo fmt
+    name: Fmt
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: Install Rust
-        run: rustup update stable
+      - uses: dtolnay/rust-toolchain@stable
       - run: cargo fmt --all -- --check
 
   docs:
-    name: cargo doc
+    name: Doc
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: Install Rust
-        run: rustup update nightly && rustup default nightly
+      - uses: dtolnay/rust-toolchain@nightly
       - run: RUSTDOCFLAGS="-D warnings --cfg docsrs" cargo doc --no-deps
