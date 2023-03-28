@@ -181,9 +181,8 @@ where
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         trace!("polling {} {}", self.index, self.state.is_some());
 
-        let state = match self.state.clone() {
-            None => return Poll::Ready(None),
-            Some(state) => state,
+        let Some(state) = self.state.clone() else {
+            return Poll::Ready(None)
         };
 
         let is_file = self.filename.is_some();

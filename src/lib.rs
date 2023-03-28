@@ -157,6 +157,7 @@
 #![forbid(unsafe_code)]
 #![deny(nonstandard_style)]
 #![warn(missing_docs, unreachable_pub)]
+#![allow(clippy::missing_errors_doc)]
 
 mod error;
 mod field;

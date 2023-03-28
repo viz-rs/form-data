@@ -6,7 +6,7 @@ use http::HeaderMap;
 
 use futures_util::stream::TryStreamExt;
 
-use form_data::*;
+use form_data::{Error, FormData};
 
 #[path = "./lib/mod.rs"]
 mod lib;

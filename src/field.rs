@@ -24,6 +24,7 @@ pub struct Field<T> {
 
 impl<T> Field<T> {
     /// Creates an empty field.
+    #[must_use]
     pub fn empty() -> Self {
         Self {
             index: 0,
@@ -37,16 +38,19 @@ impl<T> Field<T> {
     }
 
     /// Gets mutable headers.
+    #[must_use]
     pub fn headers_mut(&mut self) -> &mut Option<http::HeaderMap> {
         &mut self.headers
     }
 
     /// Gets mutable state.
+    #[must_use]
     pub fn state_mut(&mut self) -> &mut Option<Arc<Mutex<State<T>>>> {
         &mut self.state
     }
 
     /// Gets the status of state.
+    #[must_use]
     pub fn consumed(&self) -> bool {
         self.state.is_none()
     }

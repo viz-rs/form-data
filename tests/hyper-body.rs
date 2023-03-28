@@ -9,7 +9,7 @@ use futures_util::{
 };
 use http_body_util::StreamBody;
 
-use form_data::*;
+use form_data::{Error, FormData};
 
 #[path = "./lib/mod.rs"]
 mod lib;

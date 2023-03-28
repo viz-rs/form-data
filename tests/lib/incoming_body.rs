@@ -56,13 +56,13 @@ impl Body for IncomingBody {
     }
 
     fn is_end_stream(&self) -> bool {
-        self.0.as_ref().map_or(true, |inner| inner.is_end_stream())
+        self.0.as_ref().map_or(true, Body::is_end_stream)
     }
 
     fn size_hint(&self) -> SizeHint {
         self.0
             .as_ref()
-            .map_or(SizeHint::with_exact(0), |inner| inner.size_hint())
+            .map_or(SizeHint::with_exact(0), Body::size_hint)
     }
 }
 
@@ -86,7 +86,10 @@ impl Stream for IncomingBody {
     fn size_hint(&self) -> (usize, Option<usize>) {
         self.0.as_ref().map_or((0, None), |inner| {
             let sh = inner.size_hint();
-            (sh.lower() as usize, sh.upper().map(|s| s as usize))
+            (
+                usize::try_from(sh.lower()).unwrap_or(usize::MAX),
+                sh.upper().map(|v| usize::try_from(v).unwrap_or(usize::MAX)),
+            )
         })
     }
 }
