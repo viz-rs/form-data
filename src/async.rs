@@ -182,7 +182,7 @@ where
         trace!("polling {} {}", self.index, self.state.is_some());
 
         let Some(state) = self.state.clone() else {
-            return Poll::Ready(None)
+            return Poll::Ready(None);
         };
 
         let is_file = self.filename.is_some();
@@ -263,7 +263,8 @@ where
                     // invalid content disposition
                     let Some((name, filename)) = headers
                         .remove(CONTENT_DISPOSITION)
-                        .and_then(|v| parse_content_disposition(v.as_bytes()).ok()) else {
+                        .and_then(|v| parse_content_disposition(v.as_bytes()).ok())
+                    else {
                         return Poll::Ready(Some(Err(Error::InvalidContentDisposition)));
                     };
 

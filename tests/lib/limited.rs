@@ -61,7 +61,7 @@ impl<T> fmt::Debug for Limited<T> {
             .field("eof", &self.eof)
             .field("limit", &self.limit)
             .field("length", &self.length)
-            .finish()
+            .finish_non_exhaustive()
     }
 }
 

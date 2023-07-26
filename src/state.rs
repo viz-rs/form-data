@@ -224,6 +224,6 @@ impl<T> fmt::Debug for State<T> {
             .field("limits", &self.limits)
             .field("is_readable", &self.is_readable)
             .field("boundary", &String::from_utf8_lossy(self.boundary()))
-            .finish()
+            .finish_non_exhaustive()
     }
 }

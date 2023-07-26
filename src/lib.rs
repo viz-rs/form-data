@@ -16,6 +16,7 @@
 //! };
 //! use http_body_util::Full;
 //! use hyper::{body::Incoming, header, server::conn::http1, service::service_fn, Request, Response};
+//! use hyper_util::rt::TokioIo;
 //! use tempfile::tempdir;
 //! use tokio::net::TcpListener;
 //!
@@ -140,7 +141,7 @@
 //!             if let Err(err) = http1::Builder::new()
 //!                 .max_buf_size(size)
 //!                 .serve_connection(
-//!                     stream,
+//!                     TokioIo::new(stream),
 //!                     service_fn(|req: Request<Incoming>| hello(size, req)),
 //!                 )
 //!                 .await

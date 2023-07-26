@@ -41,12 +41,13 @@ futures-util = { version = "0.3", default-features = false, features = [
 anyhow = "1.0"
 rand = "0.8"
 async-fs = "1.6"
-tempfile = "3.4"
-hyper = { version = "1.0.0-rc.3", features = ["server", "http1"] }
-http-body = "1.0.0-rc.2"
-http-body-util = "0.1.0-rc.2"
-tokio = { version = "1.27", features = ["macros", "rt-multi-thread"] }
-tokio-util = { version = "0.7.7", features = ["io"] }
+tempfile = "3.7"
+hyper = { version = "=1.0.0-rc.4", features = ["server", "http1"] }
+hyper-util = { version = "=0.0.0", git = "https://github.com/hyperium/hyper-util.git" }
+http-body = "=1.0.0-rc.2"
+http-body-util = "=0.1.0-rc.3"
+tokio = { version = "1.29", features = ["macros", "rt-multi-thread"] }
+tokio-util = { version = "0.7", features = ["io"] }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 warp = "0.3"
 tiny_http = "0.12"

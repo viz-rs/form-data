@@ -58,7 +58,7 @@ pub(crate) fn parse_content_disposition(hv: &[u8]) -> Result<(String, Option<Str
     loop {
         if i == hv.len() {
             if p == 1 {
-                if let Some(mut e) = v.last_mut() {
+                if let Some(e) = v.last_mut() {
                     e.1 = &hv[if hv[j] == b'"' && hv[i - 1] == b'"' {
                         j + 1..i - 1
                     } else {
@@ -74,7 +74,7 @@ pub(crate) fn parse_content_disposition(hv: &[u8]) -> Result<(String, Option<Str
         match b {
             b';' => {
                 if p == 1 {
-                    if let Some(mut e) = v.last_mut() {
+                    if let Some(e) = v.last_mut() {
                         e.1 = &hv[if hv[j] == b'"' && hv[i - 1] == b'"' {
                             j + 1..i - 1
                         } else {
