@@ -214,23 +214,21 @@ where
                 }
 
                 // invalid part header
-                let mut headers = match parse_part_headers(&buf) {
-                    Ok(h) => h,
-                    Err(_) => return Some(Err(Error::InvalidHeader)),
+                let Ok(mut headers) = parse_part_headers(&buf) else {
+                    return Some(Err(Error::InvalidHeader));
                 };
 
                 // invalid content disposition
-                let (name, filename) = match headers
+                let Some((name, filename)) = headers
                     .remove(CONTENT_DISPOSITION)
                     .and_then(|v| parse_content_disposition(v.as_bytes()).ok())
-                {
-                    Some(n) => n,
-                    None => return Some(Err(Error::InvalidContentDisposition)),
+                else {
+                    return Some(Err(Error::InvalidContentDisposition));
                 };
 
                 // field name is too long
                 if let Some(max) = state.limits.checked_field_name_size(name.len()) {
-                    return Some(Err(Error::FieldNameTooLong(max).into()));
+                    return Some(Err(Error::FieldNameTooLong(max)));
                 }
 
                 if filename.is_some() {
