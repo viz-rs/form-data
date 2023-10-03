@@ -29,7 +29,7 @@ bytes = "1.5"
 http = "0.2"
 httparse = "1.8"
 mime = "0.3"
-memchr = "2.5"
+memchr = "2.6"
 tracing = "0.1"
 thiserror = "1.0"
 serde = { version = "1.0", features = ["derive"] }
