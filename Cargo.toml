@@ -1,6 +1,6 @@
 [package]
 name = "form-data"
-version = "0.5.0-rc.2"
+version = "0.5.0"
 authors = ["Fangdun Tsai <cfddream@gmail.com>"]
 description = "AsyncRead/AsyncWrite/Stream `multipart/form-data`"
 homepage = "https://github.com/viz-rs/form-data"
@@ -26,7 +26,7 @@ sync = []
 
 [dependencies]
 bytes = "1.5"
-http = "0.2"
+http = "1.0"
 httparse = "1.8"
 mime = "0.3"
 memchr = "2.6"
@@ -40,12 +40,12 @@ futures-util = { version = "0.3", default-features = false, features = [
 [dev-dependencies]
 anyhow = "1.0"
 rand = "0.8"
-async-fs = "1.6"
+async-fs = "2.0"
 tempfile = "3.8"
-hyper = { version = "=1.0.0-rc.4", features = ["server", "http1"] }
-hyper-util = { version = "=0.0.0", git = "https://github.com/hyperium/hyper-util.git" }
-http-body = "=1.0.0-rc.2"
-http-body-util = "=0.1.0-rc.3"
+hyper = { version = "1.0", features = ["server", "http1"] }
+hyper-util = { version = "0.1", features = ["tokio"] }
+http-body = "1.0"
+http-body-util = "0.1"
 tokio = { version = "1.0", features = ["macros", "rt-multi-thread"] }
 tokio-util = { version = "0.7", features = ["io"] }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
