@@ -161,21 +161,21 @@
 #![allow(clippy::missing_errors_doc)]
 
 mod error;
+pub use error::Error;
+
 mod field;
-mod form;
-mod limits;
-mod state;
-mod utils;
-
-pub use form::FormData;
-
 pub use field::Field;
 
-pub use state::*;
+mod form;
+pub use form::FormData;
 
+mod limits;
 pub use limits::Limits;
 
-pub use error::Error;
+mod state;
+pub use state::*;
+
+mod utils;
 
 pub(crate) type Result<T, E = Error> = std::result::Result<T, E>;
 

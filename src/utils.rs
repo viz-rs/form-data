@@ -12,10 +12,12 @@ const NAME: &[u8; 4] = b"name";
 const FILE_NAME: &[u8; 8] = b"filename";
 const FORM_DATA: &[u8; 9] = b"form-data";
 
-pub(crate) fn parse_content_type(header: Option<&http::HeaderValue>) -> Option<mime::Mime> {
+pub(crate) fn parse_content_type(header: Option<&HeaderValue>) -> Option<mime::Mime> {
     header
-        .and_then(|val| val.to_str().ok())
-        .and_then(|val| val.parse::<mime::Mime>().ok())
+        .map(HeaderValue::to_str)
+        .and_then(Result::ok)
+        .map(str::parse)
+        .and_then(Result::ok)
 }
 
 pub(crate) fn parse_part_headers(bytes: &[u8]) -> Result<HeaderMap> {

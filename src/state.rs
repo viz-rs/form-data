@@ -20,6 +20,7 @@ pub(crate) enum Flag {
     Next,
     Eof,
 }
+
 /// IO State
 pub struct State<T> {
     io: T,

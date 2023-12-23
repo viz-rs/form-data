@@ -11,7 +11,10 @@ use futures_util::{
     io::{self, AsyncRead, AsyncWrite, AsyncWriteExt},
     stream::{Stream, TryStreamExt},
 };
-use http::header::{CONTENT_DISPOSITION, CONTENT_TYPE};
+use http::{
+    header::{CONTENT_DISPOSITION, CONTENT_TYPE},
+    HeaderValue,
+};
 use tracing::trace;
 
 use crate::{
@@ -263,7 +266,10 @@ where
                     // invalid content disposition
                     let Some((name, filename)) = headers
                         .remove(CONTENT_DISPOSITION)
-                        .and_then(|v| parse_content_disposition(v.as_bytes()).ok())
+                        .as_ref()
+                        .map(HeaderValue::as_bytes)
+                        .map(parse_content_disposition)
+                        .and_then(Result::ok)
                     else {
                         return Poll::Ready(Some(Err(Error::InvalidContentDisposition)));
                     };
