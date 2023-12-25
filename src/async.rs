@@ -294,7 +294,7 @@ where
                     }
 
                     // yields `Field`
-                    let mut field = Field::<T>::empty();
+                    let mut field = Field::empty();
 
                     field.name = name;
                     field.filename = filename;

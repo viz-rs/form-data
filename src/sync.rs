@@ -221,7 +221,10 @@ where
                 // invalid content disposition
                 let Some((name, filename)) = headers
                     .remove(CONTENT_DISPOSITION)
-                    .and_then(|v| parse_content_disposition(v.as_bytes()).ok())
+                    .as_ref()
+                    .map(HeaderValue::as_bytes)
+                    .map(parse_content_disposition)
+                    .and_then(Result::ok)
                 else {
                     return Some(Err(Error::InvalidContentDisposition));
                 };
@@ -246,7 +249,7 @@ where
                 }
 
                 // yields `Field`
-                let mut field = Field::<T>::empty();
+                let mut field = Field::empty();
 
                 field.name = name;
                 field.filename = filename;
