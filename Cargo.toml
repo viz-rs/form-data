@@ -1,6 +1,6 @@
 [package]
 name = "form-data"
-version = "0.5.1"
+version = "0.5.2"
 authors = ["Fangdun Tsai <cfddream@gmail.com>"]
 description = "AsyncRead/AsyncWrite/Stream `multipart/form-data`"
 homepage = "https://github.com/viz-rs/form-data"
@@ -29,7 +29,7 @@ bytes = "1.5"
 http = "1.0"
 httparse = "1.8"
 mime = "0.3"
-memchr = "2.6"
+memchr = "2.7"
 tracing = "0.1"
 thiserror = "1.0"
 serde = { version = "1.0", features = ["derive"] }
@@ -47,7 +47,7 @@ http-body-util = "0.1"
 hyper = { version = "1.1", features = ["server", "http1"] }
 hyper-util = { version = "0.1.2", features = ["tokio"] }
 rand = "0.8"
-tempfile = "3.8"
+tempfile = "3.9"
 tiny_http = "0.12"
 tokio = { version = "1.0", features = ["macros", "rt-multi-thread"] }
 tokio-util = { version = "0.7", features = ["io"] }
