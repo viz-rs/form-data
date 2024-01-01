@@ -1,6 +1,6 @@
 [package]
 name = "form-data"
-version = "0.5.2"
+version = "0.5.3"
 authors = ["Fangdun Tsai <cfddream@gmail.com>"]
 description = "AsyncRead/AsyncWrite/Stream `multipart/form-data`"
 homepage = "https://github.com/viz-rs/form-data"
