@@ -66,3 +66,18 @@ path = "examples/hyper.rs"
 name = "tiny_http"
 path = "examples/tiny_http.rs"
 required-features = ["sync"]
+
+[[test]]
+name = "form-data"
+path = "tests/form-data.rs"
+required-features = ["async"]
+
+[[test]]
+name = "hyper-body"
+path = "tests/hyper-body.rs"
+required-features = ["async"]
+
+[[test]]
+name = "tiny-body"
+path = "tests/tiny-body.rs"
+required-features = ["sync"]

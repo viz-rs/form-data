@@ -28,7 +28,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@nightly
-      - run: cargo test --all --verbose
+      - run: cargo test --test form-data --test hyper-body
+      - run: cargo test --test tiny-body --features="sync" --no-default-features
 
   clippy:
     name: Clippy
@@ -44,7 +45,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - run: cargo fmt --all -- --check
+      - run: cargo fmt --all-features -- --check
 
   docs:
     name: Doc

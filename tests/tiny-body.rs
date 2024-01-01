@@ -3,8 +3,6 @@
 //! RUST_LOG=trace cargo test --test tiny-body --no-default-features --features="sync" -- --nocapture
 //! ```
 
-#![cfg(feature = "sync")]
-
 use std::{fs::File, io::Read, str::FromStr};
 
 use anyhow::Result;
