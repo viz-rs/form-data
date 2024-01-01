@@ -6,7 +6,7 @@ use std::{
 use bytes::{Bytes, BytesMut};
 use http::{
     header::{CONTENT_DISPOSITION, CONTENT_TYPE},
-    HeaderValue
+    HeaderValue,
 };
 use tracing::trace;
 
