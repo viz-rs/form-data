@@ -15,7 +15,7 @@ pub struct Field<T> {
     pub name: String,
     /// The filename of Field, optinal.
     pub filename: Option<String>,
-    /// The content_type of Field, optinal.
+    /// The `content_type` of Field, optinal.
     pub content_type: Option<mime::Mime>,
     /// The extras headers of Field, optinal.
     pub headers: Option<http::HeaderMap>,
