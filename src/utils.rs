@@ -11,6 +11,7 @@ pub(crate) const CRLFS: [u8; 4] = [b'\r', b'\n', b'\r', b'\n']; // `\r\n\r\n`
 const NAME: &[u8; 4] = b"name";
 const FILE_NAME: &[u8; 8] = b"filename";
 const FORM_DATA: &[u8; 9] = b"form-data";
+const SHORTEST_CONTENT_DISPOSITION: &[u8; 19] = b"form-data; name=\"s\"";
 
 pub(crate) fn parse_content_type(header: Option<&HeaderValue>) -> Option<mime::Mime> {
     header
@@ -40,7 +41,7 @@ pub(crate) fn parse_part_headers(bytes: &[u8]) -> Result<HeaderMap> {
 
 #[allow(clippy::many_single_char_names)]
 pub(crate) fn parse_content_disposition(hv: &[u8]) -> Result<(String, Option<String>)> {
-    if hv.len() < 20 {
+    if hv.len() < SHORTEST_CONTENT_DISPOSITION.len() {
         return Err(Error::InvalidContentDisposition);
     }
 
