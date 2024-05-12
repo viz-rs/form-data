@@ -1,6 +1,6 @@
 [package]
 name = "form-data"
-version = "0.5.4"
+version = "0.5.5"
 authors = ["Fangdun Tsai <cfddream@gmail.com>"]
 description = "AsyncRead/AsyncWrite/Stream `multipart/form-data`"
 repository = "https://github.com/viz-rs/form-data"
@@ -25,7 +25,7 @@ async = ["futures-util/io"]
 sync = []
 
 [dependencies]
-bytes = "1.5"
+bytes = "1.6"
 http = "1.0"
 httparse = "1.8"
 mime = "0.3"
