@@ -56,7 +56,7 @@ impl Body for IncomingBody {
     }
 
     fn is_end_stream(&self) -> bool {
-        self.0.as_ref().map_or(true, Body::is_end_stream)
+        self.0.as_ref().is_none_or(Body::is_end_stream)
     }
 
     fn size_hint(&self) -> SizeHint {
