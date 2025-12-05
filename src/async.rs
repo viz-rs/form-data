@@ -167,7 +167,7 @@ where
             Poll::Pending => Poll::Pending,
             Poll::Ready(None) => Poll::Ready(Ok(0)),
             Poll::Ready(Some(Ok(b))) => Poll::Ready(Ok(buf.write(&b)?)),
-            Poll::Ready(Some(Err(e))) => Poll::Ready(Err(io::Error::new(io::ErrorKind::Other, e))),
+            Poll::Ready(Some(Err(e))) => Poll::Ready(Err(io::Error::other(e))),
         }
     }
 }
